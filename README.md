@@ -1,4 +1,4 @@
-# poultry-master
+# 🐔 poultry-master
 
 ## Aplicação de visão computacional na detecção de aves potencialmente mortas em granjas avícolas
 

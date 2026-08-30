@@ -132,3 +132,12 @@ Alguns pontos ainda precisam ser validados por meio da análise do dataset, expe
 Ao final do projeto, espera-se obter uma prova de conceito capaz de classificar imagens de aves entre as categorias saudável, doente e morta, com foco na identificação de aves potencialmente mortas, avaliando a viabilidade da abordagem por meio de métricas de desempenho do modelo.
 
 > Desenvolver e avaliar um sistema de visão computacional capaz de classificar imagens de aves e identificar casos visualmente compatíveis com mortalidade, verificando a viabilidade da solução por meio de métricas de desempenho do modelo.
+>
+> ## Dataset utilizado
+
+O projeto utilizará o dataset público **Chicken Health Images Dataset - RGB and Thermal**, disponível no Kaggle:
+
+https://www.kaggle.com/datasets/ekosupriyanto/chicken-health-images-dataset-rgb-and-thermal
+
+O dataset contém imagens de aves classificadas nas categorias **healthy**, **sick** e **dead**, incluindo imagens RGB e térmicas. Inicialmente, o projeto utilizará apenas as imagens RGB para manter o escopo do MVP mais simples.
+

@@ -133,7 +133,8 @@ Ao final do projeto, espera-se obter uma prova de conceito capaz de classificar 
 
 > Desenvolver e avaliar um sistema de visão computacional capaz de classificar imagens de aves e identificar casos visualmente compatíveis com mortalidade, verificando a viabilidade da solução por meio de métricas de desempenho do modelo.
 >
-> ## Dataset utilizado
+
+## Dataset utilizado
 
 O projeto utilizará o dataset público **Chicken Health Images Dataset - RGB and Thermal**, disponível no Kaggle:
 

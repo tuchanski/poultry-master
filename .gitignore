@@ -1,0 +1,8 @@
+# Datasets originais e arquivos extraídos locais
+/pio/
+/kaggle/
+/data/
+
+# Artefatos locais de inspeção, treinamento e inferência
+/outputs/
+/models/

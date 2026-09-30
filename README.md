@@ -354,6 +354,8 @@ Após a validação do MVP, algumas possíveis evoluções incluem:
 
 O projeto encontra-se na etapa de definição e preparação do pipeline de visão computacional.
 
+A primeira etapa do [plano do MVP](docs/plano-mvp.md) foi auditada: os requisitos foram alinhados, os datasets foram obtidos e suas estruturas, licenças e amostras foram verificadas. O [inventário e as pendências](docs/experimentos.md) registram duplicatas entre treino e validação do PIO, caixas sem área e a necessidade de revisar recortes individuais no dataset de saúde antes do treinamento.
+
 Foram definidos dois problemas principais de inteligência artificial:
 
 * **detecção individual das aves presentes em uma imagem;**

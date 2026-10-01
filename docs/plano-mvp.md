@@ -16,7 +16,7 @@ README, requisitos e preparação foram atualizados para duas classes na etapa 3
 
 ## 2. Experiência mínima de uso
 
-Comando proposto, a ser implementado:
+Comando implementado:
 
 ```powershell
 .venv/Scripts/python.exe analyze.py --image exemplos/granja.jpg --output outputs/analise-001
@@ -164,7 +164,9 @@ Reaproveitar a implementação existente. Os itens abaixo descrevem a preparaç�
 
 **Condição para avançar:** inferência real com os dois modelos, caixas produzidas pelo detector e classe/confiança retornadas pelo classificador. Não iniciar busca extensa de arquiteturas ou hiperparâmetros. Um treinamento demonstrativo não substitui a avaliação futura com dados independentes.
 
-### Etapa 4 — Integrar a análise de uma imagem
+### Etapa 4 — Integrar a análise de uma imagem — implementada
+
+`analyze.py` executa os dois pesos reais em CPU ou GPU, processa recortes em lotes, valida os metadados dos pesos e salva imagem anotada e JSON. Foram testados ausência de detecções, limites de caixas, associação das classes, falha de classificação e erros da CLI. As execuções reais estão em `outputs/analysis-stage4` e `outputs/analysis-stage4-pio`. A primeira apresentou falsos positivos e recortes parciais; isso permanece como limitação dos modelos. Consulte [análise](analise.md).
 
 - Implementar o carregamento dos pesos uma vez por execução.
 - Aplicar os parâmetros de detecção definidos na validação e limitar caixas às dimensões da imagem, descartando caixas sem área.
@@ -228,7 +230,7 @@ Preservar os testes existentes que continuam aplicáveis e adaptar as regras de 
 
 ## 7. Prioridade e sequência
 
-**Próxima ação: etapa 4, integrar os dois pesos reais no comando de análise, com imagem anotada e relatório JSON.**
+**Próxima ação: etapa 5, avaliar os modelos e documentar a demonstração e suas limitações.**
 
 ```text
 Etapas 1 e 2 existentes

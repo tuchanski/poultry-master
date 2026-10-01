@@ -198,3 +198,19 @@ Treinamento real `classifier-reviewed`: YOLO11n-cls, semente 42, entrada 224, lo
 A primeira tentativa `classifier-baseline` foi interrompida por restrição de acesso do sandbox; foi preservada e substituída por uma nova execução autorizada, sem reutilizar artefatos parciais.
 
 Verificação funcional em CPU com os dois pesos reais: fotos `dead/mati_rgb_109.jpg` e `healthy/sehat_rgb_10.jpg`, ambas usadas no treinamento. Detector com entrada 320, confiança 0,4 e limite 20 produziu respectivamente 5 e 20 recortes, classificados com sucesso. Resultado em `outputs/classifier-reviewed-inference.json`. Isso confirma compatibilidade e execução, não qualidade das caixas nem generalização; permanecem os erros de detecção neste domínio. Não foram calculadas métricas de teste sobre essas imagens. Próxima etapa: integração em CLI, imagem anotada e relatório JSON.
+
+
+## Etapa 4 — integração em CLI (01/10/2026)
+
+Implementados `analyze.py`, `src/pipeline.py` e `src/reporting.py`. Os pesos e metadados são validados por tarefa, classes e hash. CPU por padrão; detecção 640, confiança 0,25, IoU 0,7, máximo 1.500; classificação 224 em lotes de 32. Limiares iniciais, sem ajuste no teste reservado. A saída registra parâmetros, versões por hash, horário com fuso, dimensões, caixas, confianças separadas, contagens, percentuais e candidatos à verificação.
+
+Verificação: 16 testes unitários passaram, cobrindo também ausência de detecções, recortes nas bordas, descarte de caixas vazias, preservação da associação caixa/classe com mapeamento invertido, falha de classificação e limite de detecções. Testes da CLI com pesos reais confirmaram saída zerada para uma imagem branca com confiança configurada em 1, erro para entrada inválida, peso ausente e pasta existente. Esses cenários são controles funcionais, não avaliação dos modelos.
+
+Execuções reais em CPU, com tempo incluindo carregamento dos modelos, inferência e gravação da imagem:
+
+| Foto | Uso prévio | Tempo | Caixas | healthy | dead |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `dead/mati_rgb_109.jpg` (640×480) | Treino do classificador | 3,156 s | 13 | 6 | 7 |
+| `C-W1-0001.jpg` (1920×1080) | Treino do detector | 6,062 s | 868 | 370 | 498 |
+
+Artefatos: `outputs/analysis-stage4` e `outputs/analysis-stage4-pio`, cada um com `annotated.jpg` e `report.json`. A inspeção visual da foto de saúde identificou caixas no chão e partes de aves. Na cena densa do PIO há sobreposição de textos, e o grande número de previsões `dead` evidencia a necessidade de avaliar a transferência do classificador para esse domínio. Não há rótulos individuais de saúde no PIO para medir esses erros. Essas contagens não são mortalidade confirmada, e os exemplos não constituem teste independente. A etapa 5 deve avaliar e registrar essas limitações; não foram usados dados de teste para ajustar parâmetros.

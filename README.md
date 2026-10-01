@@ -348,7 +348,15 @@ Após a validação do MVP, algumas possíveis evoluções incluem:
 
 As etapas 1 a 3 estão implementadas. Os dois modelos reais estão salvos: `models/detector.pt` e `models/classifier.pt`. O classificador foi treinado por 15 épocas com 80 recortes aprovados (40 por classe), em modo demonstrativo, sem validação/teste independentes. A inferência dos dois modelos foi conferida em CPU.
 
-**Próximo passo:** etapa 4, integrar os modelos em um comando que gere imagem anotada e relatório JSON. O comando de análise ainda não está implementado.
+A etapa 4 está implementada. Para analisar uma foto:
+
+```powershell
+.venv/Scripts/python.exe analyze.py --image "caminho/para/foto.jpg" --output outputs/analise-001
+```
+
+A pasta de saída precisa ser nova. O comando salva `annotated.jpg` e `report.json`, com caixas, classes, confianças separadas e contagens. CPU é o padrão; `--device 0` usa a GPU. Consulte o [guia de análise](docs/analise.md).
+
+**Próximo passo:** etapa 5, avaliar e documentar a demonstração. O detector ainda apresenta falsos positivos nas fotos do dataset de saúde; funcionamento do programa não implica contagem ou classificação confiáveis.
 
 Consulte o [guia de treinamento](docs/treinamento.md), a [preparação dos dados](docs/preparacao-dados.md), o [plano](docs/plano-mvp.md) e os [experimentos](docs/experimentos.md).
 

@@ -1,6 +1,6 @@
 # Treinamento — etapa 3
 
-Os dois modelos reais estão disponíveis em `models/detector.pt` e `models/classifier.pt`. A revisão das 80 imagens foi concluída, os recortes estão em `data/prepared/health-binary-reviewed` e o classificador foi treinado por 15 épocas. A avaliação independente permanece pendente. A integração em um comando de análise pertence à etapa 4.
+Os dois modelos reais estão disponíveis em `models/detector.pt` e `models/classifier.pt`. A revisão das 80 imagens foi concluída, os recortes estão em `data/prepared/health-binary-reviewed` e o classificador foi treinado por 15 épocas. A avaliação independente permanece pendente. A integração está disponível em `analyze.py`; consulte o [guia de análise](analise.md).
 
 Os passos abaixo documentam a reprodução do treinamento. Neste workspace, não é necessário refazer a revisão ou o treino; os scripts recusam sobrescrever pastas de preparação ou execuções existentes.
 

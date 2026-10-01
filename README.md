@@ -356,7 +356,7 @@ A etapa 4 está implementada. Para analisar uma foto:
 
 A pasta de saída precisa ser nova. O comando salva `annotated.jpg` e `report.json`, com caixas, classes, confianças separadas e contagens. CPU é o padrão; `--device 0` usa a GPU. Consulte o [guia de análise](docs/analise.md).
 
-**Próximo passo:** etapa 5, avaliar e documentar a demonstração. O detector ainda apresenta falsos positivos nas fotos do dataset de saúde; funcionamento do programa não implica contagem ou classificação confiáveis.
+**Etapa 5 concluída para a demonstração funcional.** O detector atingiu mAP@50 de 93,41% no teste PIO, mas superestimou a contagem em média em 39,81 aves por imagem. A avaliação independente do classificador e a identificação integrada de mortalidade continuam pendentes. Consulte os [resultados e roteiro de demonstração](docs/avaliacao.md).
 
 Consulte o [guia de treinamento](docs/treinamento.md), a [preparação dos dados](docs/preparacao-dados.md), o [plano](docs/plano-mvp.md) e os [experimentos](docs/experimentos.md).
 

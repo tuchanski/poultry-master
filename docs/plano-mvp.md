@@ -180,7 +180,9 @@ Reaproveitar a implementação existente. Os itens abaixo descrevem a preparaç�
 
 **Condição para avançar:** a contagem, as caixas, os registros individuais e o resumo são coerentes entre si; a imagem original permanece preservada.
 
-### Etapa 5 — Avaliar, demonstrar e documentar
+### Etapa 5 — Avaliar, demonstrar e documentar — concluída no escopo demonstrativo
+
+**Situação em 01/10/2026:** detector avaliado nas 188 imagens do teste reservado, com mAP@50 de 93,41% e erro absoluto médio de contagem de 39,85 aves. Script `scripts/evaluate.py`, resultados, limitações e roteiro disponíveis no [guia de avaliação](avaliacao.md). Demonstração integrada em CPU executada e inspecionada. Classificador e identificação de mortalidade permanecem sem avaliação independente; essa pendência não foi substituída por métricas de treino. O resultado atende à demonstração funcional admitida pelo plano, não à validação operacional.
 
 - Avaliar o detector no teste reservado: precision, recall, mAP@50 e mAP@50-95. Inspecionar também erros de contagem e sobreposição de aves.
 - Avaliar o classificador no teste reservado, quando disponível: acurácia, precisão, recall e F1 nas duas classes, suporte e matriz de confusão, destacando erros de `dead`. Identificar o conjunto avaliado e suas limitações. Sem teste independente, registrar “avaliação independente pendente”, sem apresentar resultados de treino ou demonstração como prova de generalização.
@@ -230,7 +232,7 @@ Preservar os testes existentes que continuam aplicáveis e adaptar as regras de 
 
 ## 7. Prioridade e sequência
 
-**Próxima ação: etapa 5, avaliar os modelos e documentar a demonstração e suas limitações.**
+**Etapas 1 a 5 entregues para o MVP demonstrativo. Próximo trabalho: dados representativos e avaliação independente da classificação e do fluxo integrado.**
 
 ```text
 Etapas 1 e 2 existentes

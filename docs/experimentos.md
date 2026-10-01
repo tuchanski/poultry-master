@@ -214,3 +214,14 @@ Execuções reais em CPU, com tempo incluindo carregamento dos modelos, inferên
 | `C-W1-0001.jpg` (1920×1080) | Treino do detector | 6,062 s | 868 | 370 | 498 |
 
 Artefatos: `outputs/analysis-stage4` e `outputs/analysis-stage4-pio`, cada um com `annotated.jpg` e `report.json`. A inspeção visual da foto de saúde identificou caixas no chão e partes de aves. Na cena densa do PIO há sobreposição de textos, e o grande número de previsões `dead` evidencia a necessidade de avaliar a transferência do classificador para esse domínio. Não há rótulos individuais de saúde no PIO para medir esses erros. Essas contagens não são mortalidade confirmada, e os exemplos não constituem teste independente. A etapa 5 deve avaliar e registrar essas limitações; não foram usados dados de teste para ajustar parâmetros.
+
+
+## Etapa 5 — teste reservado e demonstração final (01/10/2026)
+
+Avaliado o detector existente nas 188 imagens do teste PIO, sem ajuste dos pesos ou dos parâmetros pelo resultado. SHA-256 dos pesos `61677b690542a6762a835d0fc8cc810bb88e6ba0dd5c69dc70984ca5c7aced20`; manifesto `124cc0b9ecc22e30569fc024c7b119d3cb8e24d52a56d6bc5d2735960563c065`. Script reproduzível `scripts/evaluate.py`; artefatos em `outputs/evaluation/detector-test`.
+
+Precisão 0,9040; recall 0,8608; mAP@50 0,9341; mAP@50–95 0,6235. As curvas usam confiança mínima 0,001; precisão/recall são o ponto selecionado pela biblioteca. Na contagem com confiança 0,25, foram 52.821 detecções para 45.337 anotações; erro absoluto médio 39,85 e erro médio com sinal +39,81 por imagem. Nenhuma imagem atingiu o limite de 1.500. O resultado evidencia supercontagem mesmo com AP alto.
+
+Demonstração integrada em `outputs/demo-final-test`, foto de teste `C-W3-0001.jpg`, 1920×1080, CPU AMD Ryzen 7 5700X3D: 4,453 segundos, 344 detecções, 106 previsões healthy e 238 dead. A passagem separada do detector na GPU contou 343, contra 303 anotações. Essa variação não motivou ajustes; os parâmetros permanecem fixos. Inspeção visual mostrou caixas sobrepostas, textos sobrepostos e muitas previsões dead. Não há rótulos de saúde individuais no PIO para quantificar erros ou confirmar mortalidade.
+
+Os 16 testes passaram. Avaliação independente do classificador e avaliação integrada de mortalidade permanecem pendentes por ausência de dados revisados adequados; nenhuma métrica de treino foi apresentada como generalização. Instruções completas, hardware, parâmetros, interpretação das métricas e roteiro em [avaliação](avaliacao.md). MVP concluído no escopo de demonstração funcional, sem validação operacional.

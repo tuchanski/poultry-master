@@ -3,13 +3,23 @@
 import json
 from pathlib import Path
 
-from .common import write_csv
+from .common import write_csv, write_json
 from .health import REVIEW_FIELDS, rgb_images
+
+
+def write_review_page(source: Path, review: Path, template: Path, rows: list[dict]) -> None:
+    """Gera uma página nova; o CSV é salvo separadamente pelo chamador."""
+    page_rows = [{**row, "url": (source / row["image"]).resolve().as_uri()} for row in rows]
+    content = template.read_text(encoding="utf-8")
+    data = json.dumps(page_rows, ensure_ascii=False).replace("<", "\\u003c")
+    review.with_suffix(".html").write_text(
+        content.replace("__REVIEW_DATA__", data), encoding="utf-8"
+    )
 
 
 def create_review(source: Path, review: Path, template: Path) -> dict:
     page = review.with_suffix(".html")
-    if review.exists() or page.exists():
+    if review.exists() or page.exists() or (review.parent / "selection.json").exists():
         raise ValueError(f"A revisão já existe em {review.parent}; ela não será sobrescrita.")
     rows = []
     first_image = {}
@@ -32,12 +42,8 @@ def create_review(source: Path, review: Path, template: Path) -> dict:
         )
     review.parent.mkdir(parents=True, exist_ok=True)
     write_csv(review, rows, REVIEW_FIELDS)
-    for row in rows:
-        row["url"] = (source / row["image"]).resolve().as_uri()
-    content = template.read_text(encoding="utf-8")
-    # JSON seguro dentro de um bloco script; imagens só são abertas localmente.
-    data = json.dumps(rows, ensure_ascii=False).replace("<", "\\u003c")
-    page.write_text(content.replace("__REVIEW_DATA__", data), encoding="utf-8")
+    write_review_page(source, review, template, rows)
+    write_json(review.parent / "selection.json", {"images": [row["image"] for row in rows]})
     return {
         "status": "needs_review",
         "images": len(rows),

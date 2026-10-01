@@ -1,6 +1,6 @@
-# Preparação dos dados — etapa 2
+# Preparação dos dados — etapas 2 e 3
 
-O ambiente e o PIO estão preparados. O dataset do classificador aguarda a revisão manual dos recortes e dos grupos de captura, conforme decisão do usuário. Nenhum modelo foi treinado nesta etapa.
+O ambiente, o PIO e os 80 recortes binários aprovados estão preparados. Os recortes estão em `data/prepared/health-binary-reviewed`, somente para treino demonstrativo, pois os grupos de captura são desconhecidos. Os dois modelos foram treinados na etapa 3; veja o [guia de treinamento](treinamento.md).
 
 ## Ambiente
 
@@ -22,7 +22,7 @@ py -3.12 -m venv .venv
 .venv/Scripts/python.exe scripts/check_environment.py
 ```
 
-A instalação local foi realizada com uv 0.8.22, sem modificar o PATH do sistema. `.python-version` fixa a versão exata do interpretador. Pesos iniciais escolhidos em `config.json`: `yolo11n.pt` e `yolo11n-cls.pt`; o download e o treinamento desses pesos pertencem à etapa 3.
+A instalação local foi realizada com uv 0.8.22, sem modificar o PATH do sistema. `.python-version` fixa a versão exata do interpretador. Pesos iniciais escolhidos em `config.json`: `yolo11n.pt` e `yolo11n-cls.pt`; os checkpoints já foram baixados neste workspace.
 
 ## Comandos de preparação
 
@@ -32,11 +32,11 @@ Os arquivos originais precisam estar extraídos em `pio/data` e `kaggle/extracte
 # Preparar o detector.
 .venv/Scripts/python.exe scripts/prepare_data.py pio
 
-# Criar o CSV e a página de revisão do classificador.
-.venv/Scripts/python.exe scripts/prepare_data.py health-review
+# Criar outra seleção em uma pasta nova (a atual já existe).
+.venv/Scripts/python.exe scripts/suggest_health_boxes.py --manual --output data/review/manual-v2/health.csv
 
 # Preparar o classificador somente depois de concluir a revisão.
-.venv/Scripts/python.exe scripts/prepare_data.py health
+.venv/Scripts/python.exe scripts/prepare_data.py health --mode demonstration
 ```
 
 O PIO e a fila de revisão **já foram gerados neste workspace**. Os comandos recusam sobrescrever saídas existentes. Para repetir uma preparação em outra pasta:
@@ -81,14 +81,14 @@ Não há grupos conhecidos ou hashes de imagem compartilhados entre as divisões
 
 ## Revisão manual do classificador
 
-Abra `data/review/health.html` no navegador. A página usa apenas arquivos locais, sem servidor ou envio das imagens. O CSV inicial contém 600 linhas, das quais duas já estão excluídas por duplicação exata; restam 598 decisões.
+Abra `data/review/binary-manual/health.html` no navegador. São 80 imagens únicas, 40 por classe. A fila original de 600 imagens permanece preservada. Ao mudar de fila, atualize `health_review` e `health_selection` em `config.json`. A página usa apenas arquivos locais.
 
 1. Confira a foto e a classe informada pela pasta de origem.
 2. Arraste sobre a imagem para delimitar uma única ave. A página registra coordenadas em pixels na resolução original.
-3. Informe um **grupo de animal/sessão**. Imagens relacionadas precisam ter o mesmo grupo, mesmo quando estiverem em classes diferentes. Se houver dúvida, agrupe de forma conservadora; não crie um grupo por arquivo só para viabilizar a divisão.
+3. Informe um **grupo de animal/sessão**. Imagens relacionadas precisam ter o mesmo grupo, mesmo quando estiverem em classes diferentes. Se desconhecido, deixe vazio e anote `Grupo desconhecido; uso demonstrativo`. Isso permite somente treino demonstrativo; não invente grupos.
 4. Aceite o recorte apenas quando for possível associar a classe de origem àquela ave. Se houver múltiplas aves com rótulo individual incerto, desfoque excessivo ou ambiguidade, exclua a imagem e registre o motivo.
 5. Clique em **Baixar health.csv** periodicamente. A página não grava diretamente no disco e o trabalho não salvo é perdido ao fechá-la. Para retomar, abra a página e importe o CSV mais recente.
-6. Ao finalizar, coloque o CSV revisado em `data/review/health.csv`, substituindo o arquivo inicial, e execute o comando `health`.
+6. Ao finalizar, coloque o CSV revisado em `data/review/binary-manual/health.csv`, substituindo o arquivo inicial, e execute o comando `health`.
 
 Nesta versão, há no máximo um recorte aceito por imagem. A revisão mantém o rótulo fornecido pelo dataset; não confirma uma condição clínica e não transfere o rótulo automaticamente para cada animal da foto. As imagens térmicas ficam fora da fila.
 
@@ -98,13 +98,15 @@ O CSV usa estas colunas:
 | --- | --- |
 | `image`, `sha256`, `label` | Identidade e classe originais; não alterar |
 | `status` | `pending`, `accepted` ou `excluded` |
-| `group` | Animal/sessão de origem; obrigatório para imagens aceitas |
+| `group` | Animal/sessão de origem; obrigatório no modo agrupado |
 | `x1`, `y1`, `x2`, `y2` | Caixa em pixels, com área positiva e dentro da imagem |
-| `notes` | Observações; motivo obrigatório nas exclusões |
+| `notes` | Observações; motivo obrigatório nas exclusões e nos aceites sem grupo |
 
-O exportador exige todas as decisões resolvidas, as três classes e pelo menos três grupos conhecidos por classe para distribuir entre treino, validação e teste. Mesmo assim, combinações de grupos compartilhados podem impedir uma divisão válida; nesse caso ele informa o erro. **Se não for possível identificar grupos suficientes, a avaliação independente permanece pendente: não inventar sessões.**
+O exportador exige todas as decisões da seleção resolvidas e exemplos aceitos das duas classes. Imagens fora de `selection.json` não precisam ser revisadas. Não remova linhas do CSV para ignorar pendências: marque exclusões com um motivo.
 
-Após a revisão, o script atribui a divisão à imagem de origem antes de gerar recortes PNG RGB e exporta `train/{healthy,sick,dead}`, `val/{healthy,sick,dead}` e `test/{healthy,sick,dead}`, conforme o [formato de classificação da Ultralytics](https://docs.ultralytics.com/datasets/classify/). O manifesto conserva origem, grupo, caixa, classe e hashes. A confiança nos rótulos e a independência dos grupos dependem da revisão; o código verifica sua consistência, não sua veracidade.
+No modo `--mode demonstration`, os recortes vão somente para `train/{healthy,dead}`, sem validação/teste; os metadados registram avaliação independente pendente. No modo padrão `--mode grouped`, são necessários grupos reais suficientes para gerar treino, validação e teste com ambas as classes, sem grupos ou hashes compartilhados. Grupos compartilhados podem impedir uma divisão válida mesmo quando há três por classe.
+
+A atribuição de divisão ocorre antes dos recortes PNG RGB. O manifesto conserva origem, grupo, caixa, classe e hashes. O código verifica consistência, mas a confiança nos rótulos e a independência dos grupos dependem da revisão. Imagens térmicas e `sick` ficam fora do treinamento.
 
 ## Organização do código e verificações
 
@@ -114,6 +116,6 @@ O ponto de entrada é `scripts/prepare_data.py`. As responsabilidades estão sep
 .venv/Scripts/python.exe -m unittest discover -s tests -v
 ```
 
-Os nove testes cobrem ligação transitiva de grupos, reprodutibilidade, vazamento por hash, grupos insuficientes, caixas inválidas, conflitos de anotações, preservação dos originais e exportação de recortes revisados com dados sintéticos. Também foram conferidos os 1.229 pares de arquivos reais e carregada uma amostra de cada divisão com `YOLODataset`; nenhum arquivo foi marcado como corrompido. A página foi testada no Edge, incluindo desenho, aceite, exportação e reimportação de CSV com vírgulas, aspas e quebras de linha.
+Os testes cobrem ligação transitiva de grupos, reprodutibilidade, vazamento por hash, grupos insuficientes, caixas inválidas, conflitos de anotações, preservação dos originais e exportação de recortes revisados com dados sintéticos. Também foram conferidos os 1.229 pares de arquivos reais e carregada uma amostra de cada divisão com `YOLODataset`; nenhum arquivo foi marcado como corrompido. A página foi testada no Edge, incluindo desenho, aceite, exportação e reimportação de CSV com vírgulas, aspas e quebras de linha.
 
 Os dados, o CSV de revisão e os artefatos locais ficam fora do Git. Preserve uma cópia do CSV revisado; a semente e o script não conseguem reconstruir decisões manuais perdidas.

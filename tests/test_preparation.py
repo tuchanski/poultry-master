@@ -1,6 +1,7 @@
 """Verifica integridade das divisões e barreiras contra rótulos não revisados."""
 
 import csv
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -130,7 +131,7 @@ class FilePreparationTests(unittest.TestCase):
         review = self.root / "review.csv"
         template = Path(__file__).resolve().parents[1] / "scripts" / "health_review.html"
         result = create_review(source, review, template)
-        self.assertEqual(result["pending"], 9)
+        self.assertEqual(result["pending"], 6)
         output = self.root / "prepared"
         with self.assertRaisesRegex(ValueError, "pendentes"):
             prepare_health(source, review, output, RATIOS, 42)
@@ -159,13 +160,66 @@ class FilePreparationTests(unittest.TestCase):
         write_csv(review, rows, REVIEW_FIELDS)
         output = self.root / "prepared"
         summary = prepare_health(source, review, output, RATIOS, 42)
-        self.assertEqual(summary["selected_crops"], 9)
+        self.assertEqual(summary["selected_crops"], 6)
         with (output / "manifest.csv").open(encoding="utf-8-sig", newline="") as stream:
             manifest = list(csv.DictReader(stream))
         validate_splits(manifest)
         for path in output.glob("*/*/*.png"):
             with Image.open(path) as image:
                 self.assertEqual(image.size, (14, 15))
+
+    def test_selected_subset_can_be_prepared_for_demonstration_without_fake_groups(self):
+        source = self.make_health_images()
+        rows = []
+        for original in rgb_images(source):
+            if original["image"].endswith("_2.jpg"):
+                continue
+            rows.append(
+                {
+                    **original,
+                    "status": "accepted",
+                    "group": "",
+                    "x1": 1,
+                    "y1": 1,
+                    "x2": 15,
+                    "y2": 15,
+                    "notes": "Grupo desconhecido",
+                }
+            )
+        review = self.root / "review.csv"
+        selection = self.root / "selection.json"
+        write_csv(review, rows, REVIEW_FIELDS)
+        selection.write_text(json.dumps({"images": [row["image"] for row in rows]}))
+        output = self.root / "demonstration"
+        result = prepare_health(
+            source, review, output, RATIOS, 42, selection=selection, mode="demonstration"
+        )
+        self.assertEqual(result["selected_crops"], 4)
+        self.assertEqual(result["independent_evaluation"], "pending")
+        self.assertFalse((output / "val").exists())
+        self.assertFalse((output / "test").exists())
+        self.assertFalse((output / "train/sick").exists())
+        with self.assertRaisesRegex(ValueError, "animal/sessão"):
+            prepare_health(source, review, self.root / "grouped", RATIOS, 42, selection=selection)
+
+    def test_subset_cannot_silently_drop_rows(self):
+        source = self.make_health_images()
+        review = self.root / "review.csv"
+        template = Path(__file__).resolve().parents[1] / "scripts/health_review.html"
+        create_review(source, review, template)
+        with review.open(encoding="utf-8-sig", newline="") as stream:
+            rows = list(csv.DictReader(stream))
+        write_csv(review, rows[:-1], REVIEW_FIELDS)
+        with self.assertRaisesRegex(ValueError, "exatamente uma linha"):
+            prepare_health(
+                source,
+                review,
+                self.root / "bad",
+                RATIOS,
+                42,
+                selection=self.root / "selection.json",
+                mode="demonstration",
+            )
 
 
 if __name__ == "__main__":

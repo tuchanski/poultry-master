@@ -18,13 +18,12 @@ A primeira etapa será responsável pela **detecção das aves presentes na imag
 
 A partir das detecções será possível realizar a **contagem automática das aves presentes na imagem**.
 
-A segunda etapa será responsável pela **classificação da condição aparente de cada ave detectada**, considerando três categorias:
+A segunda etapa será responsável pela **classificação da condição aparente de cada ave detectada**, considerando duas categorias no MVP:
 
 * Saudável (`healthy`)
-* Doente (`sick`)
 * Morta (`dead`)
 
-Apesar de considerar as três classes, o principal foco do projeto será avaliar a capacidade do sistema de identificar corretamente aves pertencentes à classe `dead`.
+A classe `sick` fica para uma evolução futura e suas imagens não serão utilizadas no treino binário. `Healthy` representa semelhança com os exemplos saudáveis; não confirma saúde nem representa toda ave viva.
 
 A solução não tem como objetivo realizar diagnóstico veterinário nem determinar com certeza absoluta a condição de uma ave exclusivamente por meio de uma imagem. O sistema será desenvolvido como uma ferramenta de apoio ao monitoramento, indicando ocorrências que possam exigir verificação por um funcionário.
 
@@ -58,7 +57,6 @@ O classificador deverá determinar a condição aparente de cada ave entre:
 
 ```text
 healthy
-sick
 dead
 ```
 
@@ -68,7 +66,6 @@ Entre elas:
 
 * total de aves detectadas;
 * quantidade de aves classificadas como saudáveis;
-* quantidade de aves classificadas como doentes;
 * quantidade de aves classificadas como potencialmente mortas;
 * percentual de cada classificação;
 * nível de confiança das classificações.
@@ -80,8 +77,7 @@ Um possível resultado seria:
 ```text
 Aves detectadas: 127
 
-Healthy: 118
-Sick: 6
+Healthy: 124
 Dead: 3
 
 Possíveis aves mortas: 2,36%
@@ -91,7 +87,7 @@ Possíveis aves mortas: 2,36%
 
 1. **Identificar individualmente todas as instâncias de aves presentes em uma imagem, quando houver aves visíveis.**
 
-2. **Classificar cada ave identificada como saudável, doente ou potencialmente morta, quando houver informação visual suficiente para realizar a classificação.**
+2. **Classificar cada ave identificada como saudável ou potencialmente morta, quando houver informação visual suficiente para realizar a classificação.**
 
 3. **Gerar métricas e registros a partir das aves identificadas e classificadas, permitindo acompanhar quantitativos e possíveis ocorrências de mortalidade.**
 
@@ -147,9 +143,9 @@ dead
 
 O dataset também possui imagens RGB e térmicas.
 
-Para o MVP serão utilizadas inicialmente apenas as **imagens RGB**, reduzindo a complexidade da solução.
+Para o MVP serão utilizadas inicialmente apenas as **imagens RGB de healthy e dead**, com recortes revisados.
 
-As imagens serão organizadas e separadas entre conjuntos de treinamento, validação e teste.
+Com grupos de captura confiáveis, serão criados treino, validação e teste. Sem esses grupos, o modo demonstrativo usa somente treino e registra a avaliação independente como pendente.
 
 O modelo de classificação receberá como entrada a região correspondente a uma única ave previamente identificada pelo modelo de detecção e deverá retornar sua condição aparente e o nível de confiança da previsão.
 
@@ -192,7 +188,7 @@ Preparação das imagens
             ↓
 Treinamento do classificador
             ↓
-healthy / sick / dead
+healthy / dead
 ```
 
 Após o treinamento independente dos dois modelos, eles serão integrados em um único pipeline.
@@ -210,7 +206,7 @@ Recorte individual
        ↓
 Classificador
        ↓
-healthy / sick / dead
+healthy / dead
        ↓
 Cálculo das métricas
        ↓
@@ -267,7 +263,6 @@ Exemplos:
 
 * quantidade total de aves detectadas;
 * quantidade de aves saudáveis;
-* quantidade de aves doentes;
 * quantidade de aves potencialmente mortas;
 * percentual de aves em cada categoria;
 * confiança média das classificações;
@@ -287,8 +282,7 @@ Imagem analisada: granja_01.jpg
 
 Total de aves detectadas: 127
 
-Healthy: 118 (92,91%)
-Sick: 6 (4,72%)
+Healthy: 124 (97,64%)
 Dead: 3 (2,36%)
 
 Possíveis ocorrências de mortalidade: 3
@@ -312,7 +306,7 @@ O MVP deverá ser capaz de receber uma imagem contendo múltiplas aves e:
 1. detectar individualmente as aves presentes;
 2. contabilizar as aves detectadas;
 3. extrair individualmente cada região detectada;
-4. classificar cada ave entre `healthy`, `sick` ou `dead`;
+4. classificar cada ave entre `healthy` ou `dead`;
 5. apresentar a classe prevista e o nível de confiança;
 6. calcular métricas relacionadas à imagem analisada;
 7. apresentar um relatório simples com os resultados;
@@ -352,36 +346,19 @@ Após a validação do MVP, algumas possíveis evoluções incluem:
 
 ## Estado atual
 
-O projeto encontra-se na etapa de definição e preparação do pipeline de visão computacional.
+As etapas 1 a 3 estão implementadas. Os dois modelos reais estão salvos: `models/detector.pt` e `models/classifier.pt`. O classificador foi treinado por 15 épocas com 80 recortes aprovados (40 por classe), em modo demonstrativo, sem validação/teste independentes. A inferência dos dois modelos foi conferida em CPU.
 
-A primeira etapa do [plano do MVP](docs/plano-mvp.md) foi auditada. Na etapa 2, o ambiente Python foi configurado e o PIO foi preparado com 1.229 imagens, após limpeza e nova divisão por grupos. O classificador aguarda a revisão manual dos recortes RGB. Consulte o [guia de preparação e revisão](docs/preparacao-dados.md) e o [registro dos experimentos](docs/experimentos.md).
+**Próximo passo:** etapa 4, integrar os modelos em um comando que gere imagem anotada e relatório JSON. O comando de análise ainda não está implementado.
 
-Para verificar o ambiente local e executar os testes:
+Consulte o [guia de treinamento](docs/treinamento.md), a [preparação dos dados](docs/preparacao-dados.md), o [plano](docs/plano-mvp.md) e os [experimentos](docs/experimentos.md).
 
 ```powershell
 .venv/Scripts/python.exe scripts/check_environment.py
 .venv/Scripts/python.exe -m unittest discover -s tests -v
+
+# Reprodução em outra instalação; os artefatos atuais já existem.
+.venv/Scripts/python.exe scripts/prepare_data.py health --mode demonstration
+.venv/Scripts/python.exe scripts/train_classifier.py --allow-demonstration
 ```
 
-A revisão manual já está disponível em `data/review/health.html`. Depois de finalizar e salvar o CSV em `data/review/health.csv`, prepare os recortes com:
-
-```powershell
-.venv/Scripts/python.exe scripts/prepare_data.py health
-```
-
-Foram definidos dois problemas principais de inteligência artificial:
-
-* **detecção individual das aves presentes em uma imagem;**
-* **classificação da condição aparente de cada ave detectada.**
-
-Para a etapa de detecção foi identificado o dataset público **PIO**, contendo imagens de ambientes reais de produção e anotações individuais de aves.
-
-Para a etapa de classificação será utilizado o **Chicken Health Images Dataset — RGB and Thermal**, inicialmente considerando apenas imagens RGB.
-
-A arquitetura proposta seguirá o fluxo:
-
-```text
-Foto → Detecção → Contagem → Classificação → Métricas → Relatório
-```
-
-As próximas etapas incluem a preparação dos datasets, treinamento dos primeiros modelos, avaliação individual de cada etapa e posteriormente a integração dos modelos em um único pipeline.
+O modo demonstrativo permite treinar sem inventar grupos de captura ou métricas de validação. A avaliação independente e a validação do fluxo completo em fotos de granja permanecem pendentes.

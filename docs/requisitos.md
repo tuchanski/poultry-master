@@ -6,7 +6,7 @@ Em granjas avícolas, a identificação de aves mortas depende principalmente da
 
 Em ambientes com uma grande quantidade de aves, acompanhar individualmente todos os animais pode ser uma tarefa trabalhosa. Uma ave morta também pode não ser identificada imediatamente, principalmente dependendo de sua posição, da densidade de animais e das condições de visualização dentro do galpão.
 
-O projeto busca avaliar a utilização de visão computacional como ferramenta de apoio a esse processo, detectando e contando aves em uma foto e classificando a condição aparente de cada ave entre saudável (`healthy`), doente (`sick`) e potencialmente morta (`dead`).
+O projeto busca avaliar a utilização de visão computacional como ferramenta de apoio a esse processo, detectando e contando aves em uma foto e classificando a condição aparente de cada ave entre saudável (`healthy`) e potencialmente morta (`dead`).
 
 O objetivo principal é verificar se características visuais presentes nas imagens podem ser utilizadas para identificar aves potencialmente mortas e indicar essas ocorrências para posterior verificação humana.
 
@@ -30,7 +30,7 @@ Para o MVP, os stakeholders prioritários serão os produtores e funcionários r
 
 **Redução da dependência exclusiva da inspeção manual:** oferecer uma ferramenta complementar ao processo realizado pelos funcionários.
 
-**Classificação da condição aparente:** diferenciar aves aparentemente saudáveis, doentes e mortas.
+**Classificação da condição aparente:** diferenciar aves aparentemente saudáveis e potencialmente mortas.
 
 **Localização e contagem:** localizar cada ave detectada por uma bounding box e apresentar a quantidade de aves detectadas na foto.
 
@@ -44,9 +44,9 @@ Para o MVP, os stakeholders prioritários serão os produtores e funcionários r
 
 O MVP analisará uma foto RGB por execução, podendo conter múltiplas aves. O fluxo será: imagem → detecção individual → contagem → recortes → classificação por ave → métricas → relatório. Esta definição acompanha o [README](../README.md) e o [plano do MVP](plano-mvp.md).
 
-**Dentro do escopo:** execução local por linha de comando, detecção de aves, contagem aproximada, extração de recortes individuais, classificação nas três classes, confiança por ave, resumo no terminal, imagem anotada e relatório JSON local. O detector e o classificador serão treinados e avaliados separadamente e também avaliados em conjunto.
+**Dentro do escopo:** execução local por linha de comando, detecção de aves, contagem aproximada, extração de recortes individuais, classificação nas duas classes, confiança por ave, resumo no terminal, imagem anotada e relatório JSON local. O detector e o classificador serão treinados e avaliados separadamente e também avaliados em conjunto.
 
-**Fora do escopo inicial:** interface web ou mobile, API, banco de dados, consulta de histórico pela aplicação, relatórios PDF, imagens térmicas, vídeo em tempo real, múltiplas câmeras, rastreamento, alertas automáticos, diagnóstico veterinário, previsão futura de mortalidade, sensores ambientais e automação da retirada das aves.
+**Fora do escopo inicial:** classe `sick`, interface web ou mobile, API, banco de dados, consulta de histórico pela aplicação, relatórios PDF, imagens térmicas, vídeo em tempo real, múltiplas câmeras, rastreamento, alertas automáticos, diagnóstico veterinário, previsão futura de mortalidade, sensores ambientais e automação da retirada das aves.
 
 ## 5. Requisitos funcionais
 
@@ -54,7 +54,7 @@ O MVP analisará uma foto RGB por execução, podendo conter múltiplas aves. O 
 
 **RF02:** executar o detector sobre a foto e o classificador sobre cada recorte válido de ave detectada.
 
-**RF03:** classificar cada recorte válido em exatamente uma classe: `healthy`, `sick` ou `dead`.
+**RF03:** classificar cada recorte válido em exatamente uma classe: `healthy` ou `dead`.
 
 **RF04:** informar a confiança da classificação de cada ave, mantendo-a separada da confiança da detecção.
 
@@ -88,9 +88,12 @@ O MVP analisará uma foto RGB por execução, podendo conter múltiplas aves. O 
 
 **RNF06:** a inferência deve ser executável localmente em CPU e preservar a imagem original. A disponibilidade de GPU para treinamento será verificada na preparação do ambiente.
 
+Sem grupos de captura confiáveis, admite-se treino apenas demonstrativo, sem validação/teste artificiais. Registrar avaliação independente pendente; o MVP funcional não comprova generalização.
+
 ## 7. Regras de negócio
 
-**RN01:** em uma análise concluída com sucesso, cada ave detectada com recorte válido deve receber exatamente uma das três classes. Uma foto sem detecções não recebe classificação de saúde: retorna lista vazia, totais e percentuais zerados e a mensagem “nenhuma ave detectada”. Isso não confirma ausência de aves na foto.
+**RN01:** em uma análise concluída com sucesso, cada ave detectada com recorte válido deve receber exatamente uma das duas classes. Uma foto sem detecções não recebe classificação de saúde: retorna lista vazia, totais e percentuais zerados e a mensagem “nenhuma ave detectada”. Isso não confirma ausência de aves na foto.
+
 
 **RN02:** uma classificação como morta deve ser interpretada como indicação de uma ave potencialmente morta e não como confirmação definitiva de óbito.
 
@@ -98,13 +101,15 @@ O MVP analisará uma foto RGB por execução, podendo conter múltiplas aves. O 
 
 **RN04:** o foco da avaliação do modelo deve considerar especialmente o desempenho da classe correspondente às aves mortas.
 
-**RN05:** em uma análise concluída com sucesso, `healthy + sick + dead = total_classificado = total_detectado`. Os percentuais usam o total detectado como denominador e não representam a mortalidade de todo o plantel.
+**RN05:** em uma análise concluída com sucesso, `healthy + dead = total_classificado = total_detectado`. Os percentuais usam o total detectado como denominador e não representam a mortalidade de todo o plantel.
 
 **RN06:** identificadores de aves serão válidos apenas dentro da análise; não representam identificação permanente ou rastreamento.
 
 **RN07:** toda previsão `dead` será indicada para verificação, mesmo com baixa confiança. A confiança é uma pontuação do modelo e não uma certeza clínica.
 
 **RN08:** caixas sem área serão descartadas antes da contagem e dos recortes. Se um recorte válido não puder ser classificado, a execução deverá informar falha, sem inventar uma classe.
+
+**RN09:** `healthy` não confirma saúde nem representa toda ave viva. Imagens `sick` não serão convertidas em outra classe nem utilizadas no treinamento binário.
 
 ## 8. Critérios de aceitação
 
@@ -114,7 +119,7 @@ Os critérios de aceitação foram definidos para os requisitos considerados ess
 
 **CA-RF02:** a análise deve executar os dois modelos treinados, preservando a associação entre caixa, recorte e classificação.
 
-**CA-RF03:** cada ave detectada com recorte válido deve retornar uma das classes `healthy`, `sick` ou `dead`. Sem detecções, o sistema deve retornar lista vazia e resumo zerado, sem executar classificação nem dividir por zero.
+**CA-RF03:** cada ave detectada com recorte válido deve retornar uma das classes `healthy` ou `dead`. Sem detecções, o sistema deve retornar lista vazia e resumo zerado, sem executar classificação nem dividir por zero.
 
 **CA-RF04:** cada resultado individual deve apresentar a confiança da classificação e, separadamente, a confiança da detecção, com valores entre 0 e 1 no JSON.
 

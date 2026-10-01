@@ -1,11 +1,16 @@
 {
   "seed": 42,
-  "split_ratios": {"train": 0.70, "val": 0.15, "test": 0.15},
+  "split_ratios": {
+    "train": 0.7,
+    "val": 0.15,
+    "test": 0.15
+  },
   "pio_source": "pio/data",
   "health_source": "kaggle/extracted/Multimodal Chicken Datasets",
-  "health_review": "data/review/health.csv",
+  "health_review": "data/review/binary-manual/health.csv",
+  "health_selection": "data/review/binary-manual/selection.json",
   "pio_output": "data/prepared/pio",
-  "health_output": "data/prepared/health",
+  "health_output": "data/prepared/health-binary-reviewed",
   "detector_checkpoint": "yolo11n.pt",
   "classifier_checkpoint": "yolo11n-cls.pt"
 }

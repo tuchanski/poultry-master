@@ -167,3 +167,34 @@ O CSV `data/review/health.csv` contém 600 imagens RGB: duas cópias exatas marc
 A execução de `prepare_data.py health` recusa a revisão incompleta, como esperado. O exportador foi testado com imagens sintéticas revisadas; a geração real do dataset de classificação aguarda as decisões do usuário. Caso a revisão não consiga identificar sessões suficientes, ainda será necessário resolver essa limitação antes de afirmar que existe teste independente.
 
 Passaram nove testes automatizados, a verificação das dependências instaladas e o teste da ferramenta de revisão no navegador Edge. A preparação não aplica aumentos de dados nem altera os arquivos originais.
+
+
+## Etapa 3 — treinamento e revisão binária (01/10/2026)
+
+YOLO11n ajustado no PIO preparado: 870 imagens de treino, 171 de validação e 188 de teste reservado. Execução `outputs/training/detector-baseline`, origem `models/pretrained/yolo11n.pt`, semente 42, entrada 640, lote 8, máximo de 15 épocas, paciência 5, limite de 1.500 detecções, RTX 4070 Ti SUPER. Concluídas 13 épocas em aproximadamente 565 segundos. Melhor checkpoint da validação exportado para `models/detector.pt`; hashes, versões e parâmetros em `models/detector.json`.
+
+| Métrica na validação do PIO | Resultado |
+| --- | ---: |
+| Precisão | 0,8286 |
+| Recall | 0,7278 |
+| mAP@50 | 0,8154 |
+| mAP@50–95 | 0,5082 |
+
+Não são métricas de teste nem comprovam identificação de aves mortas. No dataset de saúde, a inspeção mostrou caixas no fundo e recortes parciais. A fila `data/review/binary`, com entrada 640 e confiança 0,15, atingiu o limite de 20 sugestões em todas as 80 imagens. Uma amostra de oito imagens com entrada 320 e confiança 0,4 melhorou alguns casos `dead`, mas ainda apresentou erros em `healthy`. Nenhuma caixa foi aprovada automaticamente.
+
+Aplicado o fallback do plano: `data/review/binary-manual/health.html`, 40 imagens únicas por classe, semente 42, todas pendentes. Sugestões anteriores e revisão original preservadas. A configuração seleciona explicitamente essas 80 imagens e exclui `sick` do treinamento.
+
+Preparação e treinador binários implementados: divisão por grupos conhecidos ou demonstração somente com treino. O modo demonstrativo exige opção explícita, usa orçamento fixo e exporta a última época, sem selecionar por validação nem fabricar métricas independentes. Grupos desconhecidos permanecem vazios com observações.
+
+Testes unitários e dois treinos de uma época com oito imagens sintéticas verificaram o código, um por modo, em `outputs/classifier-smoke`. Esses pesos não foram exportados como `models/classifier.pt` e não substituem treino real. Treinamento real do classificador, integração e avaliação independente permanecem pendentes.
+
+
+### Conclusão do treinamento binário — 01/10/2026
+
+O usuário concluiu e aprovou os 80 recortes (40 `dead`, 40 `healthy`). A observação de grupo desconhecido foi normalizada para o campo de notas, mantendo grupos vazios, caixas e aprovações; o CSV anterior foi preservado em backup. Dataset final: `data/prepared/health-binary-reviewed`, configurado em `config.json`, somente treino demonstrativo.
+
+Treinamento real `classifier-reviewed`: YOLO11n-cls, semente 42, entrada 224, lote 16, 15 épocas fixas, GPU RTX 4070 Ti SUPER, aproximadamente 16,69 segundos incluindo preparação do treino. Última época exportada para `models/classifier.pt`; mapeamento `0: dead`, `1: healthy`. Metadados em `models/classifier.json`, com métricas de validação nulas e avaliação independente pendente. SHA-256 dos pesos: `830358f8bd8ecc993eec32109ca430d13494cb4d972e33e2ea0e9bdddc18e4af`.
+
+A primeira tentativa `classifier-baseline` foi interrompida por restrição de acesso do sandbox; foi preservada e substituída por uma nova execução autorizada, sem reutilizar artefatos parciais.
+
+Verificação funcional em CPU com os dois pesos reais: fotos `dead/mati_rgb_109.jpg` e `healthy/sehat_rgb_10.jpg`, ambas usadas no treinamento. Detector com entrada 320, confiança 0,4 e limite 20 produziu respectivamente 5 e 20 recortes, classificados com sucesso. Resultado em `outputs/classifier-reviewed-inference.json`. Isso confirma compatibilidade e execução, não qualidade das caixas nem generalização; permanecem os erros de detecção neste domínio. Não foram calculadas métricas de teste sobre essas imagens. Próxima etapa: integração em CLI, imagem anotada e relatório JSON.

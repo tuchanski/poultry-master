@@ -16,6 +16,12 @@ from src.preparation.review import create_review
 def main() -> int:
     parser = argparse.ArgumentParser(description="Prepara os datasets sem modificar os originais.")
     parser.add_argument("dataset", choices=("pio", "health-review", "health"))
+    parser.add_argument(
+        "--mode",
+        choices=("grouped", "demonstration"),
+        default="grouped",
+        help="demonstration gera só treino, sem validação/teste independentes.",
+    )
     parser.add_argument("--config", type=Path, default=PROJECT_ROOT / "config.json")
     parser.add_argument(
         "--output", type=Path, help="Pasta nova para pio/health; caminho do CSV para health-review."
@@ -45,6 +51,12 @@ def main() -> int:
                 output,
                 settings["split_ratios"],
                 settings["seed"],
+                selection=(
+                    root / settings["health_selection"]
+                    if settings.get("health_selection")
+                    else None
+                ),
+                mode=args.mode,
             )
     except (OSError, ValueError, KeyError) as error:
         print(f"Erro: {error}", file=sys.stderr)

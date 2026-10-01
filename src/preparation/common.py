@@ -9,7 +9,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 SPLITS = ("train", "val", "test")
-HEALTH_CLASSES = ("healthy", "sick", "dead")
+HEALTH_CLASSES = ("healthy", "dead")
 
 
 def file_hash(path: Path) -> str:

@@ -8,7 +8,7 @@ Considerando o prazo curto informado pelo usuário, o essencial é demonstrar **
 
 Base do plano: [README](../README.md), [requisitos](requisitos.md) e [referências](referencias.md). Na criação do plano, o repositório continha apenas documentação. A auditoria da etapa 1 está registrada em [experimentos](experimentos.md).
 
-O fluxo de detecção e classificação de múltiplas aves permanece. Este plano reduz a proposta de três classes ainda descrita no README e nos requisitos; a atualização desses documentos e dos contratos do código para duas classes faz parte da etapa 3. A classificação isolada não será suficiente para concluir o MVP.
+README, requisitos e preparação foram atualizados para duas classes na etapa 3. A classificação isolada não será suficiente para concluir o MVP.
 
 **Ponto de partida:** as etapas 1 e 2 já têm sua implementação disponível. Reaproveitar ambiente, PIO preparado, scripts e ferramenta de revisão. A preparação dos recortes reais de saúde continua pendente, mas deixa de exigir a revisão das 598 imagens: será feita sobre um subconjunto binário, com auxílio do detector na etapa 3.
 
@@ -120,11 +120,13 @@ Reaproveitar a implementação existente. Os itens abaixo descrevem a preparaç�
 
 **Entregue:** ambiente, configuração do detector, preparação reproduzível do PIO, scripts e ferramenta de revisão do classificador. Os diretórios reais de classificação ainda dependem dos recortes aprovados.
 
-**Situação em 01/10/2026:** ambiente local criado e verificado em CPU/GPU; PIO preparado com 1.229 imagens: 870 de treino, 171 de validação e 188 de teste, sem hashes ou grupos conhecidos compartilhados. Scripts e ferramenta local de revisão implementados e testados. A fila original contém 598 imagens RGB pendentes; o plano revisado permite selecionar somente parte de `healthy` e `dead`. As instruções em [preparação dos dados](preparacao-dados.md) descrevem a implementação atual, que ainda exige três classes e revisão completa. Não considerar a seleção binária já implementada.
+**Situação em 01/10/2026:** ambiente local criado e verificado em CPU/GPU; PIO preparado com 1.229 imagens: 870 de treino, 171 de validação e 188 de teste, sem hashes ou grupos conhecidos compartilhados. Scripts e ferramenta local de revisão implementados e testados. A fila original contém 598 imagens RGB pendentes; o plano revisado permite selecionar somente parte de `healthy` e `dead`. Na etapa 3, a preparação foi adaptada para a seleção binária explícita descrita no [guia de treinamento](treinamento.md).
 
 **Condição para avançar:** a leitura das três divisões do PIO já foi verificada; iniciar o treinamento do detector sem aguardar a revisão de saúde. Preservar o teste reservado e os arquivos originais. Não refazer o ambiente ou as divisões do PIO para adotar o escopo reduzido.
 
 ### Etapa 3 — Treinar os modelos e preparar o subconjunto binário
+
+**Situação em 01/10/2026 — etapa concluída em modo demonstrativo:** detector em `models/detector.pt` e classificador real em `models/classifier.pt`. As 80 imagens foram aprovadas pelo usuário; o classificador foi treinado por 15 épocas com 40 recortes de cada classe, sem grupos conhecidos nem avaliação independente. Inferência em CPU conferida com os dois modelos, incluindo classificação de caixas do detector. A integração em CLI e relatórios permanece na etapa 4. Consulte [treinamento](treinamento.md).
 
 #### 3.1. Treinar primeiro o detector
 
@@ -226,7 +228,7 @@ Preservar os testes existentes que continuam aplicáveis e adaptar as regras de 
 
 ## 7. Prioridade e sequência
 
-**Próxima ação: etapa 3.1, treinar o detector com o PIO já preparado.**
+**Próxima ação: etapa 4, integrar os dois pesos reais no comando de análise, com imagem anotada e relatório JSON.**
 
 ```text
 Etapas 1 e 2 existentes

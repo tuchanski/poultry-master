@@ -16,6 +16,8 @@
 <p>Fotos do mesmo animal ou sessão devem usar o mesmo grupo, inclusive entre classes.
   Se não souber separar sessões independentes, mantenha-as juntas e explique nas notas.
   Não invente grupos só para obter as proporções de treino e teste.</p>
+<p>Se o grupo for desconhecido, deixe-o vazio e registre isso nas notas. Esses recortes
+  só poderão ser usados em treinamento demonstrativo, sem avaliação independente.</p>
 <p><label>Retomar revisão: <input id="import" type="file" accept=".csv"></label>
   <button id="export">Baixar health.csv</button></p>
 <p>O trabalho fica na memória desta página. Baixe o CSV antes de fechar e importe-o ao retomar.</p>
@@ -27,6 +29,8 @@
 <p id="classification"></p>
 <canvas id="canvas" width="640" height="480"></canvas>
 <p id="coordinates"></p>
+<p id="suggestion-help"></p>
+<div id="suggestions"></div>
 <label>Grupo de animal/sessão <input id="group" type="text" placeholder="Ex.: galpao-a-sessao-01"></label>
 <label>Notas ou motivo da exclusão <textarea id="notes" rows="2"></textarea></label>
 <button id="accept">Aceitar recorte</button>
@@ -70,6 +74,23 @@ function show() {
   element("group").value = row.group;
   element("notes").value = row.notes;
   element("message").textContent = "";
+  const candidates = row.candidates || [];
+  element("suggestion-help").textContent = candidates.length
+    ? `${candidates.length} sugestão(ões) do detector. Confira a caixa; a classe não foi confirmada.`
+    : "Sem sugestão disponível. Você pode desenhar a caixa manualmente.";
+  element("suggestions").replaceChildren();
+  candidates.forEach((candidate, number) => {
+    const button = document.createElement("button");
+    button.textContent = `Usar caixa ${number + 1} (${Math.round(candidate.confidence * 100)}%)`;
+    button.onclick = () => {
+      [row.x1, row.y1, row.x2, row.y2] = candidate.box;
+      row.status = "pending";
+      dirty = true;
+      draw();
+      element("classification").textContent = `Classe de origem: ${row.label} · Situação: pending`;
+    };
+    element("suggestions").appendChild(button);
+  });
   loaded = false;
   picture.src = row.url;
   draw();
@@ -115,8 +136,12 @@ for (const key of ["group", "notes"]) {
 
 function decide(status) {
   const row = rows[index];
-  if (status === "accepted" && (!row.group.trim() || row.x1 === "" || !(+row.x2 > +row.x1 && +row.y2 > +row.y1))) {
-    element("message").textContent = "Marque um recorte válido e informe o grupo antes de aceitar.";
+  if (status === "accepted" && (row.x1 === "" || !(+row.x2 > +row.x1 && +row.y2 > +row.y1))) {
+    element("message").textContent = "Marque um recorte válido antes de aceitar.";
+    return;
+  }
+  if (status === "accepted" && !row.group.trim() && !row.notes.trim()) {
+    element("message").textContent = "Informe o grupo ou explique nas notas que ele é desconhecido.";
     return;
   }
   if (status === "excluded" && !row.notes.trim()) {

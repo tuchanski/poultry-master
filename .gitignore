@@ -7,6 +7,8 @@
 /outputs/
 /models/
 /runs/
+# Checkpoints que o Ultralytics pode baixar na raiz ao verificar AMP
+/*.pt
 
 # Ambiente Python e ferramentas locais
 /.venv/

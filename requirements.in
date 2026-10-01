@@ -1,0 +1,9 @@
+# Ambiente validado: Python 3.12, Windows x64, NVIDIA CUDA 12.8.
+# requirements.txt fixa tambem as dependencias indiretas.
+torch==2.8.0+cu128
+torchvision==0.23.0+cu128
+ultralytics==8.3.203
+Pillow==11.3.0
+numpy==2.2.6
+scikit-learn==1.7.2
+PyYAML==6.0.2

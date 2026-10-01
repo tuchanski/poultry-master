@@ -133,3 +133,37 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/inspect-data.ps1
 O script não modifica imagens ou anotações. Ele verifica correspondência imagem/rótulo, campos YOLO, leitura das dimensões, hashes SHA-256, duplicatas e MD5 dos arquivos compactados. Os resultados ficam em `outputs/inspection/inventory.csv`, `summary.json` e nos dois manifestos de modalidade. A inspeção visual descrita acima foi realizada separadamente; o script não gera as montagens e não determina a condição de saúde dos animais.
 
 A auditoria não fez análise de similaridade perceptual, revisão de todas as caixas ou comprovação clínica dos rótulos. Os resultados aqui descritos se referem aos arquivos originais, antes de qualquer limpeza ou divisão nova.
+
+## Etapa 2 — Preparação em 01/10/2026
+
+O [guia de preparação](preparacao-dados.md) documenta os comandos e as decisões. O usuário informou não possuir anotações adicionais de saúde ou grupos de captura e optou pela preparação de uma revisão manual.
+
+### Ambiente verificado
+
+- Python 3.12.11 local, ambiente `.venv`, 39 dependências fixadas em `requirements.txt`.
+- PyTorch 2.8.0+cu128, torchvision 0.23.0+cu128, Ultralytics 8.3.203, Pillow 11.3.0, NumPy 2.2.6, scikit-learn 1.7.2 e PyYAML 6.0.2.
+- CPU e GPU testadas com operação de tensor; CUDA disponível na NVIDIA GeForce RTX 4070 Ti SUPER, com 16 GB.
+- Checkpoints iniciais definidos: `yolo11n.pt` e `yolo11n-cls.pt`. Nenhum treinamento ou download de pesos executado.
+
+### Resultado do PIO
+
+As diferenças nos arquivos de anotação de 112 grupos de duplicatas também existem após comparação numérica e ordenação das caixas. Foram excluídas da cópia preparada as 229 imagens desses grupos, dez cópias equivalentes e 19 imagens com prefixo `K`, não explicado no documento de nomenclatura. As cinco caixas sem área foram descartadas durante a leitura dos originais. Os registros completos estão em `data/prepared/pio`.
+
+| Divisão | Imagens |
+| --- | ---: |
+| Treino | 870 |
+| Validação | 171 |
+| Teste | 188 |
+| Total | 1.229 |
+
+Restaram 280.655 caixas. A semente é 42; a meta 70/15/15 é aproximada para preservar os grupos de captura. Os grupos foram unidos transitivamente quando ligados por imagens idênticas, inclusive antes das exclusões. Não há interseção de hashes ou grupos entre divisões. A independência de animais entre semanas e a ausência de frames quase iguais não foram comprovadas.
+
+Foram verificados os hashes e as anotações de todos os arquivos preparados. O carregador `YOLODataset` verificou as três divisões e retornou uma amostra `3 × 640 × 640` de cada uma, sem arquivos corrompidos. Isso é uma verificação de leitura, não uma avaliação de desempenho no teste.
+
+### Classificador e testes
+
+O CSV `data/review/health.csv` contém 600 imagens RGB: duas cópias exatas marcadas como excluídas e 598 imagens pendentes. A página `data/review/health.html` permite marcar um recorte por foto, informar o grupo e exportar o CSV. Imagens térmicas não entram na fila. Os rótulos originais não foram alterados e nenhum recorte real foi aprovado automaticamente.
+
+A execução de `prepare_data.py health` recusa a revisão incompleta, como esperado. O exportador foi testado com imagens sintéticas revisadas; a geração real do dataset de classificação aguarda as decisões do usuário. Caso a revisão não consiga identificar sessões suficientes, ainda será necessário resolver essa limitação antes de afirmar que existe teste independente.
+
+Passaram nove testes automatizados, a verificação das dependências instaladas e o teste da ferramenta de revisão no navegador Edge. A preparação não aplica aumentos de dados nem altera os arquivos originais.

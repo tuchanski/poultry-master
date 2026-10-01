@@ -1,0 +1,11 @@
+{
+  "seed": 42,
+  "split_ratios": {"train": 0.70, "val": 0.15, "test": 0.15},
+  "pio_source": "pio/data",
+  "health_source": "kaggle/extracted/Multimodal Chicken Datasets",
+  "health_review": "data/review/health.csv",
+  "pio_output": "data/prepared/pio",
+  "health_output": "data/prepared/health",
+  "detector_checkpoint": "yolo11n.pt",
+  "classifier_checkpoint": "yolo11n-cls.pt"
+}

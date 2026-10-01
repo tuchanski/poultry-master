@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<title>Revisão dos recortes de aves</title>
+<style>
+  body { max-width: 900px; margin: 24px auto; padding: 0 16px; font: 16px system-ui; }
+  canvas { display: block; max-width: 100%; border: 1px solid #777; touch-action: none; }
+  label { display: block; margin: 12px 0; }
+  input[type=text], textarea { box-sizing: border-box; width: 100%; padding: 8px; }
+  button { margin: 6px 8px 6px 0; padding: 8px 12px; }
+  #message { min-height: 24px; color: #8b3100; }
+</style>
+<h1>Revisão dos recortes de aves</h1>
+<p>Arraste sobre a foto para delimitar <strong>uma única ave</strong>. A classe vem da
+  pasta original. Exclua imagens ambíguas; não atribua a classe da foto a várias aves.</p>
+<p>Fotos do mesmo animal ou sessão devem usar o mesmo grupo, inclusive entre classes.
+  Se não souber separar sessões independentes, mantenha-as juntas e explique nas notas.
+  Não invente grupos só para obter as proporções de treino e teste.</p>
+<p><label>Retomar revisão: <input id="import" type="file" accept=".csv"></label>
+  <button id="export">Baixar health.csv</button></p>
+<p>O trabalho fica na memória desta página. Baixe o CSV antes de fechar e importe-o ao retomar.</p>
+<hr>
+<p id="progress"></p>
+<button id="previous">Anterior</button><button id="next">Próxima</button>
+<label>Imagem <input id="position" type="number" min="1" value="1"></label>
+<h2 id="name"></h2>
+<p id="classification"></p>
+<canvas id="canvas" width="640" height="480"></canvas>
+<p id="coordinates"></p>
+<label>Grupo de animal/sessão <input id="group" type="text" placeholder="Ex.: galpao-a-sessao-01"></label>
+<label>Notas ou motivo da exclusão <textarea id="notes" rows="2"></textarea></label>
+<button id="accept">Aceitar recorte</button>
+<button id="exclude">Excluir imagem</button>
+<button id="pending">Deixar pendente</button>
+<p id="message" role="status"></p>
+
+<script id="review-data" type="application/json">__REVIEW_DATA__</script>
+<script>
+const rows = JSON.parse(document.getElementById("review-data").textContent);
+const fields = ["image", "sha256", "label", "status", "group", "x1", "y1", "x2", "y2", "notes"];
+const element = id => document.getElementById(id);
+const canvas = element("canvas");
+const context = canvas.getContext("2d");
+const picture = new Image();
+let index = 0;
+let start = null;
+let dirty = false;
+let loaded = false;
+
+function draw() {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  if (!loaded) return;
+  context.drawImage(picture, 0, 0);
+  const row = rows[index];
+  if (row.x1 !== "" && row.x2 !== "") {
+    context.strokeStyle = "#00ff40";
+    context.lineWidth = 3;
+    context.strokeRect(+row.x1, +row.y1, row.x2 - row.x1, row.y2 - row.y1);
+  }
+  element("coordinates").textContent = `Caixa: [${row.x1}, ${row.y1}, ${row.x2}, ${row.y2}]`;
+}
+
+function show() {
+  const row = rows[index];
+  element("name").textContent = row.image;
+  element("classification").textContent = `Classe de origem: ${row.label} · Situação: ${row.status}`;
+  element("progress").textContent = `${index + 1}/${rows.length} · ${rows.filter(r => r.status === "pending").length} pendentes`;
+  element("position").value = index + 1;
+  element("position").max = rows.length;
+  element("group").value = row.group;
+  element("notes").value = row.notes;
+  element("message").textContent = "";
+  loaded = false;
+  picture.src = row.url;
+  draw();
+}
+
+picture.onload = () => {
+  canvas.width = picture.naturalWidth;
+  canvas.height = picture.naturalHeight;
+  loaded = true;
+  draw();
+};
+picture.onerror = () => { element("message").textContent = "Não foi possível abrir a imagem. Confira o caminho dos dados."; };
+
+function point(event) {
+  const area = canvas.getBoundingClientRect();
+  return [
+    Math.round(Math.max(0, Math.min(canvas.width, (event.clientX - area.left) * canvas.width / area.width))),
+    Math.round(Math.max(0, Math.min(canvas.height, (event.clientY - area.top) * canvas.height / area.height)))
+  ];
+}
+
+canvas.onpointerdown = event => {
+  if (!loaded) return;
+  start = point(event);
+  canvas.setPointerCapture(event.pointerId);
+};
+canvas.onpointermove = event => {
+  if (!start) return;
+  const end = point(event);
+  const row = rows[index];
+  [row.x1, row.y1] = [Math.min(start[0], end[0]), Math.min(start[1], end[1])];
+  [row.x2, row.y2] = [Math.max(start[0], end[0]), Math.max(start[1], end[1])];
+  row.status = "pending";
+  dirty = true;
+  draw();
+};
+canvas.onpointerup = () => { start = null; };
+canvas.onpointercancel = () => { start = null; };
+
+for (const key of ["group", "notes"]) {
+  element(key).oninput = () => { rows[index][key] = element(key).value; dirty = true; };
+}
+
+function decide(status) {
+  const row = rows[index];
+  if (status === "accepted" && (!row.group.trim() || row.x1 === "" || !(+row.x2 > +row.x1 && +row.y2 > +row.y1))) {
+    element("message").textContent = "Marque um recorte válido e informe o grupo antes de aceitar.";
+    return;
+  }
+  if (status === "excluded" && !row.notes.trim()) {
+    element("message").textContent = "Informe o motivo da exclusão.";
+    return;
+  }
+  row.status = status;
+  dirty = true;
+  show();
+}
+element("accept").onclick = () => decide("accepted");
+element("exclude").onclick = () => decide("excluded");
+element("pending").onclick = () => decide("pending");
+element("previous").onclick = () => { index = Math.max(0, index - 1); show(); };
+element("next").onclick = () => { index = Math.min(rows.length - 1, index + 1); show(); };
+element("position").onchange = () => {
+  const position = Number(element("position").value);
+  if (Number.isInteger(position) && position >= 1 && position <= rows.length) { index = position - 1; show(); }
+};
+
+function parseCsv(text) {
+  const records = [];
+  let record = [], value = "", quoted = false;
+  text = text.replace(/^\uFEFF/, "");
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (char === '"') {
+      if (quoted && text[i + 1] === '"') { value += '"'; i++; }
+      else quoted = !quoted;
+    } else if (char === "," && !quoted) { record.push(value); value = ""; }
+    else if (char === "\n" && !quoted) { record.push(value); records.push(record); record = []; value = ""; }
+    else if (char !== "\r" || quoted) value += char;
+  }
+  if (quoted) throw new Error("CSV com aspas não fechadas.");
+  if (value || record.length) { record.push(value); records.push(record); }
+  return records;
+}
+
+element("import").onchange = async event => {
+  try {
+    const [header, ...data] = parseCsv(await event.target.files[0].text());
+    if (fields.some(field => !header.includes(field))) throw new Error("CSV sem as colunas esperadas.");
+    const imported = new Map(data.map(values => {
+      const row = Object.fromEntries(header.map((field, i) => [field, values[i] ?? ""]));
+      return [row.image, row];
+    }));
+    if (imported.size !== rows.length || data.length !== rows.length) throw new Error("A lista de imagens difere desta revisão.");
+    for (const row of rows) {
+      const incoming = imported.get(row.image);
+      if (!incoming || incoming.sha256 !== row.sha256 || incoming.label !== row.label) throw new Error("Origem ou classe alterada no CSV.");
+      if (!["pending", "accepted", "excluded"].includes(incoming.status)) throw new Error("Status inválido no CSV.");
+    }
+    for (const row of rows) for (const field of fields) row[field] = imported.get(row.image)[field];
+    dirty = false;
+    show();
+  } catch (error) { element("message").textContent = error.message; }
+};
+
+element("export").onclick = () => {
+  const quote = value => '"' + String(value).replaceAll('"', '""') + '"';
+  const lines = [fields.map(quote).join(","), ...rows.map(row => fields.map(field => quote(row[field])).join(","))];
+  const url = URL.createObjectURL(new Blob(["\uFEFF" + lines.join("\r\n") + "\r\n"], {type: "text/csv;charset=utf-8"}));
+  const link = document.createElement("a");
+  link.href = url; link.download = "health.csv"; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  dirty = false;
+};
+window.addEventListener("beforeunload", event => { if (dirty) { event.preventDefault(); event.returnValue = ""; } });
+show();
+</script>
+</html>

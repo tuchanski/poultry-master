@@ -111,6 +111,8 @@ Evitar camadas de serviços, sistemas de plugins, gerenciadores de experimentos 
 
 **Entrega:** preparação reproduzível, configuração do detector e diretórios de classificação prontos para treinamento.
 
+**Situação em 01/10/2026:** ambiente local criado e verificado em CPU/GPU; preparação do PIO executada com 1.229 imagens e divisões sem hashes ou grupos compartilhados. Scripts de preparação e ferramenta local de revisão implementados e testados. Conforme decisão do usuário, o classificador aguarda revisão manual de 598 imagens RGB; seus diretórios de treinamento ainda não foram gerados. Instruções em [preparação dos dados](preparacao-dados.md). A condição de conclusão da etapa 2 permanece pendente para o classificador.
+
 **Condição para avançar:** uma amostra de cada divisão carrega corretamente e as verificações de rótulos e caixas passam. O conjunto de teste fica reservado até a avaliação final.
 
 ### Etapa 3 — Obter os dois primeiros modelos

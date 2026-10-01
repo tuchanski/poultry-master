@@ -354,7 +354,20 @@ Após a validação do MVP, algumas possíveis evoluções incluem:
 
 O projeto encontra-se na etapa de definição e preparação do pipeline de visão computacional.
 
-A primeira etapa do [plano do MVP](docs/plano-mvp.md) foi auditada: os requisitos foram alinhados, os datasets foram obtidos e suas estruturas, licenças e amostras foram verificadas. O [inventário e as pendências](docs/experimentos.md) registram duplicatas entre treino e validação do PIO, caixas sem área e a necessidade de revisar recortes individuais no dataset de saúde antes do treinamento.
+A primeira etapa do [plano do MVP](docs/plano-mvp.md) foi auditada. Na etapa 2, o ambiente Python foi configurado e o PIO foi preparado com 1.229 imagens, após limpeza e nova divisão por grupos. O classificador aguarda a revisão manual dos recortes RGB. Consulte o [guia de preparação e revisão](docs/preparacao-dados.md) e o [registro dos experimentos](docs/experimentos.md).
+
+Para verificar o ambiente local e executar os testes:
+
+```powershell
+.venv/Scripts/python.exe scripts/check_environment.py
+.venv/Scripts/python.exe -m unittest discover -s tests -v
+```
+
+A revisão manual já está disponível em `data/review/health.html`. Depois de finalizar e salvar o CSV em `data/review/health.csv`, prepare os recortes com:
+
+```powershell
+.venv/Scripts/python.exe scripts/prepare_data.py health
+```
 
 Foram definidos dois problemas principais de inteligência artificial:
 

@@ -6,3 +6,11 @@
 # Artefatos locais de inspeção, treinamento e inferência
 /outputs/
 /models/
+/runs/
+
+# Ambiente Python e ferramentas locais
+/.venv/
+/.tools/
+__pycache__/
+*.py[cod]
+.pytest_cache/

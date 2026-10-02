@@ -225,3 +225,12 @@ Precisão 0,9040; recall 0,8608; mAP@50 0,9341; mAP@50–95 0,6235. As curvas us
 Demonstração integrada em `outputs/demo-final-test`, foto de teste `C-W3-0001.jpg`, 1920×1080, CPU AMD Ryzen 7 5700X3D: 4,453 segundos, 344 detecções, 106 previsões healthy e 238 dead. A passagem separada do detector na GPU contou 343, contra 303 anotações. Essa variação não motivou ajustes; os parâmetros permanecem fixos. Inspeção visual mostrou caixas sobrepostas, textos sobrepostos e muitas previsões dead. Não há rótulos de saúde individuais no PIO para quantificar erros ou confirmar mortalidade.
 
 Os 16 testes passaram. Avaliação independente do classificador e avaliação integrada de mortalidade permanecem pendentes por ausência de dados revisados adequados; nenhuma métrica de treino foi apresentada como generalização. Instruções completas, hardware, parâmetros, interpretação das métricas e roteiro em [avaliação](avaliacao.md). MVP concluído no escopo de demonstração funcional, sem validação operacional.
+
+
+## Rodada de diagnóstico e ajustes — 01/10/2026
+
+Executado `scripts/diagnose_models.py` sem acessar o teste nem alterar os pesos. Na validação PIO (171 fotos), confiança 0,25 e NMS 0,50 reduziram o erro absoluto médio de contagem de 21,31 para 15,01; precisão a IoU 0,5 passou de 70,49% para 77,77%, recall de 79,06% para 78,28%. Pareamento guloso por confiança, sem correspondências duplicadas; essas métricas não são AP. Configuração candidata preservada em `config.pio-ajustado.json`; padrão original inalterado.
+
+Nos 80 recortes vistos no treino, classificador acertou 79. O detector em 640 só produziu caixa com IoU >= 0,5 para 1 ave revisada; em 320, para 61. Nos 61 casos correspondentes em 320, os recortes manuais e automáticos tiveram 60 acertos cada. A escolha por maior IoU depende da anotação manual e serve apenas ao diagnóstico. Outros objetos da foto não possuem rótulo individual revisado. As execuções completas em 320 ainda mostraram muitas detecções no fundo; resolução experimental não adotada como padrão. Avaliação independente da classificação continua pendente.
+
+Dezenove testes passaram. Resultados, trade-offs, comandos e exemplos visuais descritos em [diagnóstico de melhorias](diagnostico-melhorias.md). Próximo passo exige dados representativos e anotações completas das aves para adaptar o detector, além de avaliação independente do classificador.

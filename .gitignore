@@ -2,11 +2,15 @@
 /pio/
 /kaggle/
 /data/
+/fotos/
 
 # Artefatos locais de inspeção, treinamento e inferência
 /outputs/
+/output/
 /models/
 /runs/
+# Arquivos locais de sistema e resultados entregues fora do código
+**/.DS_Store
 # Checkpoints que o Ultralytics pode baixar na raiz ao verificar AMP
 /*.pt
 

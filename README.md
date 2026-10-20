@@ -346,6 +346,11 @@ Após a validação do MVP, algumas possíveis evoluções incluem:
 
 ## Estado atual
 
+**Execução no macOS (Apple Silicon):** use Python 3.12.11 e
+`requirements-macos.txt`. Veja os comandos no [guia de execução](docs/guia-execucao.md#macos-apple-silicon).
+O clone do Git não inclui os modelos treinados nem as imagens; esses arquivos
+precisam ser copiados da instalação anterior para executar a análise real.
+
 As etapas 1 a 3 estão implementadas. Os dois modelos reais estão salvos: `models/detector.pt` e `models/classifier.pt`. O classificador foi treinado por 15 épocas com 80 recortes aprovados (40 por classe), em modo demonstrativo, sem validação/teste independentes. A inferência dos dois modelos foi conferida em CPU.
 
 A etapa 4 está implementada. Para analisar uma foto:
@@ -359,6 +364,8 @@ A pasta de saída precisa ser nova. O comando salva `annotated.jpg` e `report.js
 **Etapa 5 concluída para a demonstração funcional.** O detector atingiu mAP@50 de 93,41% no teste PIO, mas superestimou a contagem em média em 39,81 aves por imagem. A avaliação independente do classificador e a identificação integrada de mortalidade continuam pendentes. Consulte os [resultados e roteiro de demonstração](docs/avaliacao.md).
 
 Consulte o [guia de treinamento](docs/treinamento.md), a [preparação dos dados](docs/preparacao-dados.md), o [plano](docs/plano-mvp.md) e os [experimentos](docs/experimentos.md).
+
+**Protótipo sequencial em desenvolvimento:** `analyze_sequence.py` reaproveita o detector para processar fotos de uma câmera fixa, associar caixas e sinalizar imobilidade aparente. Ainda depende de uma sequência real com horários confiáveis para validação. O [plano do MVP sequencial](docs/plano-mvp-sequencial.md) registra escopo e critérios; o [guia de uso](docs/analise-sequencial.md) explica o manifesto e os parâmetros.
 
 ```powershell
 .venv/Scripts/python.exe scripts/check_environment.py

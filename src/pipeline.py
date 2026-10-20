@@ -23,7 +23,7 @@ def confidence(value):
     return value
 
 
-def classify_birds(image, detector, classifier, settings):
+def detect_birds(image, detector, settings):
     prediction = detector.predict(
         image,
         device=settings["device"],
@@ -44,6 +44,11 @@ def classify_birds(image, detector, classifier, settings):
             birds.append(
                 {"id": len(birds) + 1, "box": box, "detection_confidence": confidence(score)}
             )
+    return birds, len(boxes) >= settings["max_det"]
+
+
+def classify_birds(image, detector, classifier, settings):
+    birds, limit_reached = detect_birds(image, detector, settings)
     batch_size = settings["classifier_batch"]
     for start in range(0, len(birds), batch_size):
         batch = birds[start : start + batch_size]
@@ -64,4 +69,4 @@ def classify_birds(image, detector, classifier, settings):
                 classification_confidence=confidence(result.probs.top1conf),
                 requires_verification=label == "dead",
             )
-    return birds, len(boxes) >= settings["max_det"]
+    return birds, limit_reached

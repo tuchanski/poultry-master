@@ -1,379 +1,170 @@
-# poultry-master
+# Poultry Master
 
-## Aplicação de visão computacional na identificação de aves potencialmente mortas em granjas avícolas
+Ferramenta experimental de visão computacional para detectar aves em imagens e
+acompanhar suas **bounding boxes** em fotos sucessivas de uma câmera fixa. O
+fluxo atual usa as caixas detectadas para estimar trajetórias e sinalizar
+imobilidade aparente para revisão humana.
 
-Projeto proposto para a disciplina **Projeto Transformador I**, do curso de Ciência da Computação da PUCPR.
+O foco do MVP é a detecção e o acompanhamento espacial/temporal das caixas. O
+classificador `healthy/dead` não faz parte do fluxo sequencial atual. Um
+candidato de imobilidade não confirma que uma ave morreu: caixas podem sumir,
+ser associadas à ave errada ou parecer paradas entre capturas.
 
-A proposta é desenvolver uma solução de apoio ao monitoramento de granjas avícolas utilizando visão computacional para identificar individualmente as aves presentes em uma imagem, contabilizá-las e analisar sua condição aparente.
-
-Em granjas avícolas, a identificação de aves mortas normalmente depende da inspeção realizada pelos funcionários durante o manejo. Em ambientes com grande quantidade de animais, essa atividade exige acompanhamento constante e pode demandar tempo significativo.
-
-O projeto busca avaliar se técnicas de visão computacional podem auxiliar esse processo, identificando individualmente as aves presentes no ambiente e indicando possíveis casos de mortalidade para posterior verificação humana.
-
-## Proposta
-
-O sistema será composto por duas etapas principais de visão computacional.
-
-A primeira etapa será responsável pela **detecção das aves presentes na imagem**, localizando cada animal individualmente por meio de bounding boxes.
-
-A partir das detecções será possível realizar a **contagem automática das aves presentes na imagem**.
-
-A segunda etapa será responsável pela **classificação da condição aparente de cada ave detectada**, considerando duas categorias no MVP:
-
-* Saudável (`healthy`)
-* Morta (`dead`)
-
-A classe `sick` fica para uma evolução futura e suas imagens não serão utilizadas no treino binário. `Healthy` representa semelhança com os exemplos saudáveis; não confirma saúde nem representa toda ave viva.
-
-A solução não tem como objetivo realizar diagnóstico veterinário nem determinar com certeza absoluta a condição de uma ave exclusivamente por meio de uma imagem. O sistema será desenvolvido como uma ferramenta de apoio ao monitoramento, indicando ocorrências que possam exigir verificação por um funcionário.
-
-## Fluxo do sistema
-
-O funcionamento geral do Poultry Master seguirá o seguinte fluxo:
+## Fluxo atual
 
 ```text
-FOTO
-  ↓
-DETECÇÃO DAS INSTÂNCIAS
-  ↓
-CONTAGEM DAS AVES
-  ↓
-EXTRAÇÃO INDIVIDUAL DOS OBJETOS
-  ↓
-CLASSIFICAÇÃO
-  ↓
-MÉTRICAS
-  ↓
-RELATÓRIO
+Fotos de uma câmera fixa com horários
+                 ↓
+       Detector YOLO de aves
+                 ↓
+     Bounding boxes por captura
+                 ↓
+     Filtro opcional por ROI
+                 ↓
+ Associação de caixas entre fotos
+                 ↓
+  Movimento e tempo aparente parado
+                 ↓
+ Candidatos para revisão humana
+                 ↓
+ frames/ + tracks.csv + report.json
 ```
 
-Inicialmente, uma imagem da granja será processada por um modelo de detecção de objetos responsável por localizar individualmente todas as aves visíveis.
+O detector processa cada foto separadamente. O associador atribui IDs
+temporários às caixas que parecem corresponder entre capturas; esses IDs não
+são uma identificação permanente dos animais. O programa limita a 30 segundos
+o tempo creditado entre observações, encerra trajetórias após capturas ausentes
+e inicia uma nova sessão depois de uma pausa longa. Detalhes da configuração e
+da última execução estão em [fluxo atual do MVP sequencial](docs/fluxo-atual-mvp-sequencial.md).
 
-A quantidade de objetos detectados será utilizada para determinar o número aproximado de aves presentes na imagem.
+## Requisitos e instalação
 
-Cada região detectada será então recortada individualmente e enviada ao modelo de classificação.
+Use Python 3.12 e `uv`. Na raiz do repositório, crie um ambiente virtual e
+instale as dependências apropriadas ao sistema.
 
-O classificador deverá determinar a condição aparente de cada ave entre:
+### macOS (Apple Silicon)
 
-```text
-healthy
-dead
+```bash
+uv venv --python 3.12 .venv
+uv pip sync --python .venv/bin/python requirements-macos.txt
+.venv/bin/python scripts/check_environment.py
 ```
 
-Ao final do processamento serão calculadas métricas relacionadas às aves encontradas na imagem.
-
-Entre elas:
-
-* total de aves detectadas;
-* quantidade de aves classificadas como saudáveis;
-* quantidade de aves classificadas como potencialmente mortas;
-* percentual de cada classificação;
-* nível de confiança das classificações.
-
-Essas informações poderão posteriormente ser utilizadas para geração de relatórios de acompanhamento.
-
-Um possível resultado seria:
-
-```text
-Aves detectadas: 127
-
-Healthy: 124
-Dead: 3
-
-Possíveis aves mortas: 2,36%
-```
-
-## Objetivos funcionais
-
-1. **Identificar individualmente todas as instâncias de aves presentes em uma imagem, quando houver aves visíveis.**
-
-2. **Classificar cada ave identificada como saudável ou potencialmente morta, quando houver informação visual suficiente para realizar a classificação.**
-
-3. **Gerar métricas e registros a partir das aves identificadas e classificadas, permitindo acompanhar quantitativos e possíveis ocorrências de mortalidade.**
-
-## Datasets
-
-O projeto utilizará dois conjuntos de dados distintos, pois as etapas de detecção e classificação possuem objetivos diferentes.
-
-### Detecção de aves — PIO
-
-Para o treinamento do modelo responsável pela detecção das aves será utilizado o dataset **PIO — Poultry Images for Object Detection**, apresentado no trabalho:
-
-**PIO, A Large-Scale Dataset for Broiler Chicken Detection under Real Poultry Farming Conditions**
-
-https://pmc.ncbi.nlm.nih.gov/articles/PMC13223325/
-
-O PIO possui **1.487 imagens** capturadas em instalações avícolas comerciais e experimentais, contendo um total de **327.289 instâncias de frangos anotadas manualmente**.
-
-As imagens apresentam condições encontradas em ambientes reais de produção, incluindo variações de:
-
-* iluminação;
-* densidade de aves;
-* tamanho e estágio de crescimento dos animais;
-* posicionamento das aves;
-* condições do ambiente.
-
-As anotações são disponibilizadas na forma de **bounding boxes no formato YOLO**, permitindo utilizar o dataset diretamente para treinamento de modelos de detecção de objetos.
-
-Nesta etapa, será utilizado um modelo da família **YOLO** para aprender a localizar individualmente cada ave presente na imagem.
-
-O modelo terá inicialmente apenas uma classe:
-
-```text
-chicken
-```
-
-O objetivo dessa etapa não será determinar a condição da ave, mas localizar corretamente cada indivíduo para que ele possa ser contado e posteriormente analisado pelo classificador.
-
-### Classificação da condição da ave
-
-Para o treinamento do segundo modelo será utilizado o dataset público:
-
-**Chicken Health Images Dataset — RGB and Thermal**
-
-https://www.kaggle.com/datasets/ekosupriyanto/chicken-health-images-dataset-rgb-and-thermal
-
-O conjunto contém imagens de aves divididas nas categorias:
-
-```text
-healthy
-sick
-dead
-```
-
-O dataset também possui imagens RGB e térmicas.
-
-Para o MVP serão utilizadas inicialmente apenas as **imagens RGB de healthy e dead**, com recortes revisados.
-
-Com grupos de captura confiáveis, serão criados treino, validação e teste. Sem esses grupos, o modo demonstrativo usa somente treino e registra a avaliação independente como pendente.
-
-O modelo de classificação receberá como entrada a região correspondente a uma única ave previamente identificada pelo modelo de detecção e deverá retornar sua condição aparente e o nível de confiança da previsão.
-
-## Imagens próprias da granja
-
-Além dos datasets públicos, poderão ser coletadas imagens em uma granja real para avaliar o funcionamento do sistema no ambiente em que a solução poderia ser utilizada.
-
-Essas imagens serão importantes principalmente para verificar a capacidade de generalização do detector, já que diferenças de iluminação, posicionamento da câmera, estrutura do galpão e densidade das aves podem influenciar o desempenho do modelo.
-
-Caso necessário, parte dessas imagens poderá ser anotada e utilizada para realizar **fine-tuning** do modelo de detecção.
-
-As imagens próprias também poderão formar um conjunto de teste separado, permitindo comparar o desempenho obtido nos datasets públicos com o desempenho em um ambiente real diferente daquele utilizado durante o treinamento.
-
-## Pipeline de treinamento
-
-O projeto será dividido inicialmente em dois pipelines independentes.
-
-### 1. Detecção
-
-```text
-PIO Dataset
-    ↓
-Preparação dos dados
-    ↓
-Treinamento do YOLO
-    ↓
-Detecção individual das aves
-    ↓
-Bounding boxes
-```
-
-O objetivo será treinar um modelo capaz de localizar cada ave presente em uma imagem contendo múltiplos animais.
-
-### 2. Classificação
-
-```text
-Chicken Health Images Dataset
-            ↓
-Preparação das imagens
-            ↓
-Treinamento do classificador
-            ↓
-healthy / dead
-```
-
-Após o treinamento independente dos dois modelos, eles serão integrados em um único pipeline.
-
-```text
-Imagem da granja
-       ↓
-Detector YOLO
-       ↓
-Bounding boxes
-       ↓
-Contagem das aves
-       ↓
-Recorte individual
-       ↓
-Classificador
-       ↓
-healthy / dead
-       ↓
-Cálculo das métricas
-       ↓
-Relatório
-```
-
-## Métricas
-
-O projeto trabalhará com dois tipos diferentes de métricas.
-
-### Métricas dos modelos
-
-As métricas dos modelos serão utilizadas para avaliar tecnicamente o desempenho dos algoritmos utilizados.
-
-#### Detector
-
-O modelo de detecção poderá ser avaliado por meio de:
-
-* Precision;
-* Recall;
-* mAP@50;
-* mAP@50-95;
-* IoU.
-
-Também será analisada visualmente a capacidade do modelo de identificar aves em situações como:
-
-* alta densidade de animais;
-* sobreposição entre aves;
-* diferentes condições de iluminação;
-* aves parcialmente visíveis;
-* diferentes regiões do galpão.
-
-#### Classificador
-
-O modelo responsável pela classificação poderá ser avaliado utilizando:
-
-* acurácia;
-* precisão;
-* recall;
-* F1-score;
-* matriz de confusão.
-
-Será dada atenção especial ao desempenho da classe `dead`.
-
-Os falsos negativos serão especialmente relevantes, pois representam situações em que uma ave potencialmente morta não é identificada pelo sistema.
-
-Também serão analisados falsos positivos, como situações em que uma ave saudável deitada ou descansando seja classificada incorretamente como morta.
-
-### Métricas operacionais
-
-Além das métricas utilizadas para avaliar os modelos de inteligência artificial, o sistema poderá gerar informações relacionadas ao ambiente analisado.
-
-Exemplos:
-
-* quantidade total de aves detectadas;
-* quantidade de aves saudáveis;
-* quantidade de aves potencialmente mortas;
-* percentual de aves em cada categoria;
-* confiança média das classificações;
-* histórico de ocorrências.
-
-Essas informações poderão servir como base para relatórios de acompanhamento da granja.
-
-## Relatórios
-
-A etapa final do pipeline será responsável por organizar os resultados do processamento de forma compreensível para o usuário.
-
-Um relatório poderá apresentar informações como:
-
-```text
-Data: 18/09/2026
-Imagem analisada: granja_01.jpg
-
-Total de aves detectadas: 127
-
-Healthy: 124 (97,64%)
-Dead: 3 (2,36%)
-
-Possíveis ocorrências de mortalidade: 3
-```
-
-Também poderão ser armazenadas informações como:
-
-* data e horário da análise;
-* imagem processada;
-* quantidade de aves detectadas;
-* resultados das classificações;
-* níveis de confiança;
-* possíveis ocorrências de mortalidade.
-
-No MVP, o relatório poderá ser apresentado de maneira simples, sem necessidade de uma plataforma completa de monitoramento.
-
-## MVP
-
-O MVP deverá ser capaz de receber uma imagem contendo múltiplas aves e:
-
-1. detectar individualmente as aves presentes;
-2. contabilizar as aves detectadas;
-3. extrair individualmente cada região detectada;
-4. classificar cada ave entre `healthy` ou `dead`;
-5. apresentar a classe prevista e o nível de confiança;
-6. calcular métricas relacionadas à imagem analisada;
-7. apresentar um relatório simples com os resultados;
-8. indicar possíveis ocorrências de aves mortas para verificação.
-
-O processamento poderá inicialmente ser realizado sobre imagens estáticas, sem necessidade de integração em tempo real com câmeras.
-
-## Fora do escopo inicial
-
-Para reduzir a complexidade do projeto, inicialmente não fazem parte do MVP:
-
-* diagnóstico de doenças específicas;
-* análise veterinária;
-* utilização obrigatória de imagens térmicas;
-* processamento contínuo de vídeo em tempo real;
-* rastreamento da mesma ave entre diferentes frames;
-* identificação individual permanente de cada animal;
-* funcionamento embarcado diretamente em câmeras;
-* cobertura automática de toda a extensão de um galpão;
-* sistema completo de alertas em tempo real.
-
-## Evoluções futuras
-
-Após a validação do MVP, algumas possíveis evoluções incluem:
-
-* utilização de vídeo em tempo real;
-* captura automática de imagens por câmeras instaladas na granja;
-* geração automática de alertas;
-* armazenamento de histórico de ocorrências;
-* dashboard para acompanhamento;
-* geração de relatórios históricos;
-* comparação entre imagens RGB e térmicas;
-* rastreamento de aves ao longo do tempo;
-* monitoramento de diferentes regiões do galpão;
-* utilização de imagens próprias para fine-tuning dos modelos;
-* avaliação do sistema em diferentes granjas.
-
-## Estado atual
-
-**Execução no macOS (Apple Silicon):** use Python 3.12.11 e
-`requirements-macos.txt`. Veja os comandos no [guia de execução](docs/guia-execucao.md#macos-apple-silicon).
-O clone do Git não inclui os modelos treinados nem as imagens; esses arquivos
-precisam ser copiados da instalação anterior para executar a análise real.
-
-As etapas 1 a 3 estão implementadas. Os dois modelos reais estão salvos: `models/detector.pt` e `models/classifier.pt`. O classificador foi treinado por 15 épocas com 80 recortes aprovados (40 por classe), em modo demonstrativo, sem validação/teste independentes. A inferência dos dois modelos foi conferida em CPU.
-
-A etapa 4 está implementada. Para analisar uma foto:
+### Windows (PowerShell, NVIDIA CUDA 12.8)
 
 ```powershell
-.venv/Scripts/python.exe analyze.py --image "caminho/para/foto.jpg" --output outputs/analise-001
-```
-
-A pasta de saída precisa ser nova. O comando salva `annotated.jpg` e `report.json`, com caixas, classes, confianças separadas e contagens. CPU é o padrão; `--device 0` usa a GPU. Consulte o [guia de análise](docs/analise.md).
-
-**Etapa 5 concluída para a demonstração funcional.** O detector atingiu mAP@50 de 93,41% no teste PIO, mas superestimou a contagem em média em 39,81 aves por imagem. A avaliação independente do classificador e a identificação integrada de mortalidade continuam pendentes. Consulte os [resultados e roteiro de demonstração](docs/avaliacao.md).
-
-Consulte o [guia de treinamento](docs/treinamento.md), a [preparação dos dados](docs/preparacao-dados.md), o [plano](docs/plano-mvp.md) e os [experimentos](docs/experimentos.md).
-
-**Protótipo sequencial em desenvolvimento:** `analyze_sequence.py` reaproveita o detector para processar fotos de uma câmera fixa, associar caixas e sinalizar imobilidade aparente. Ainda depende de uma sequência real com horários confiáveis para validação. O [plano do MVP sequencial](docs/plano-mvp-sequencial.md) registra escopo e critérios; o [guia de uso](docs/analise-sequencial.md) explica o manifesto e os parâmetros.
-
-```powershell
+uv venv --python 3.12 .venv
+uv pip sync --python .venv/Scripts/python.exe requirements.txt
 .venv/Scripts/python.exe scripts/check_environment.py
-.venv/Scripts/python.exe -m unittest discover -s tests -v
-
-# Reprodução em outra instalação; os artefatos atuais já existem.
-.venv/Scripts/python.exe scripts/prepare_data.py health --mode demonstration
-.venv/Scripts/python.exe scripts/train_classifier.py --allow-demonstration
 ```
 
-O modo demonstrativo permite treinar sem inventar grupos de captura ou métricas de validação. A avaliação independente e a validação do fluxo completo em fotos de granja permanecem pendentes.
+CPU é o padrão. No Windows com GPU CUDA disponível, passe `--device 0` ao
+comando de análise. No macOS, use CPU.
+
+## Arquivos necessários
+
+O clone não inclui pesos treinados, datasets nem capturas da granja. Para o
+fluxo sequencial, disponibilize o peso do detector e o arquivo de metadados
+gerado junto dele:
+
+```text
+models/detector.pt
+models/detector.json
+```
+
+Os metadados devem corresponder exatamente ao peso. O caminho padrão está em
+`config.json` (`inference.detector`). O detector esperado tem a tarefa `detect`
+e a classe `chicken`.
+
+## Executar a análise sequencial
+
+### Opção 1: pasta de capturas com timestamp no nome
+
+Para capturas nomeadas como
+`screenshot_<timestamp_em_milissegundos>_<contador>.png` (ou `.jpg`), passe a
+pasta diretamente. As imagens são ordenadas pelo timestamp extraído do nome;
+arquivos fora do padrão são ignorados.
+
+```bash
+.venv/bin/python analyze_sequence.py \
+  --images-dir "/caminho/para/capturas" \
+  --output outputs/granja-001 \
+  --device cpu \
+  --roi 0,0.60,1,1 \
+  --stationary-minutes 7 \
+  --candidates-only \
+  --hide-labels
+```
+
+No Windows, substitua `.venv/bin/python` por
+`.venv/Scripts/python.exe` e use caminhos compatíveis com PowerShell. Passe
+`--device 0` para selecionar a GPU CUDA. Escolha uma pasta de saída nova para
+cada execução.
+
+O exemplo usa a ROI `0,0.60,1,1`: toda a largura da imagem e os 40% inferiores.
+Uma caixa é incluída quando seu centro está dentro da ROI. Remova `--roi` para
+considerar todas as detecções. `--stationary-minutes 7` define o limiar
+experimental da execução; o padrão do programa é 5 minutos. `--candidates-only`
+e `--hide-labels` mudam apenas a visualização gerada.
+
+### Opção 2: manifesto CSV
+
+Use esta opção se os nomes dos arquivos não carregam timestamps. Crie um CSV
+UTF-8 com as colunas `image` e `timestamp`; timestamps precisam incluir o fuso
+horário e caminhos relativos são resolvidos a partir da pasta do CSV.
+
+```csv
+image,timestamp
+frames/frame-001.jpg,2026-10-19T10:00:00-03:00
+frames/frame-002.jpg,2026-10-19T10:00:30-03:00
+```
+
+Execute:
+
+```bash
+.venv/bin/python analyze_sequence.py \
+  --manifest "/caminho/para/sequence.csv" \
+  --output outputs/sequencia-001 \
+  --device cpu
+```
+
+O programa ordena as linhas cronologicamente e rejeita horários repetidos,
+imagens ausentes, dimensões diferentes e timestamps sem fuso. Para mais
+parâmetros temporais e exemplos, consulte [análise sequencial](docs/analise-sequencial.md).
+
+## Resultados
+
+Cada execução cria a pasta indicada por `--output` com:
+
+| Arquivo | Conteúdo |
+| --- | --- |
+| `frames/` | Fotos anotadas com caixas, IDs temporários e candidatos, conforme opções de visualização. |
+| `tracks.csv` | Uma linha por observação: timestamp, caixa, trajetória, movimento e estado. |
+| `report.json` | Configuração, contagens, trajetórias, eventos candidatos e metadados das imagens/modelo. |
+
+`stationary_candidate` quer dizer que uma trajetória acumulou pouca
+movimentação aparente pelo tempo configurado e precisa ser verificada. Não é
+um diagnóstico de saúde ou confirmação de óbito. Câmera móvel, mudanças de
+iluminação, sobreposição, falhas de detecção e trocas de associação podem
+afetar o resultado.
+
+## Desenvolvimento, avaliação e dados
+
+Confira o ambiente e rode a suíte de testes:
+
+```bash
+.venv/bin/python scripts/check_environment.py
+.venv/bin/python -m unittest discover -s tests -v
+```
+
+No Windows, use `.venv/Scripts/python.exe` no lugar de `.venv/bin/python`.
+Os testes do associador usam detecções controladas e não validam o desempenho
+em uma granja real.
+
+O projeto também contém preparação e avaliação do detector PIO. O detector
+atingiu mAP@50 de 93,41% no teste PIO, mas apresentou supercontagem média de
+39,81 aves por imagem nessa avaliação. Esse resultado não mede o rastreamento
+sequencial. Dados de preparação e treinamento estão documentados em
+[preparação dos dados](docs/preparacao-dados.md), [treinamento](docs/treinamento.md)
+e [avaliação](docs/avaliacao.md). Os planos do MVP estão em
+[MVP sequencial](docs/plano-mvp-sequencial.md) e [MVP inicial](docs/plano-mvp.md).

@@ -5,8 +5,7 @@ acompanhar suas **bounding boxes** em fotos sucessivas de uma câmera fixa. O
 fluxo atual usa as caixas detectadas para estimar trajetórias e sinalizar
 imobilidade aparente para revisão humana.
 
-O foco do MVP é a detecção e o acompanhamento espacial/temporal das caixas. O
-fluxo utiliza apenas o detector; o classificador `healthy/dead` foi removido. Um
+O foco do MVP é a detecção e o acompanhamento espacial/temporal das caixas. Um
 candidato de imobilidade não confirma que uma ave morreu: caixas podem sumir,
 ser associadas à ave errada ou parecer paradas entre capturas.
 

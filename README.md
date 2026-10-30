@@ -1,9 +1,9 @@
 # Poultry Master
 
 Ferramenta experimental de visão computacional voltada ao acompanhamento de
-aves de criação em granjas avícolas, com foco em frangos de corte alojados em
-galpões. O sistema detecta as aves em fotos sucessivas de uma câmera fixa e
-acompanha suas **bounding boxes** para estimar trajetórias e sinalizar
+galinhas e frangos de criação em granjas avícolas, com foco em frangos de corte
+alojados em galpões. O sistema detecta as aves em fotos sucessivas de uma câmera
+fixa e acompanha suas **bounding boxes** para estimar trajetórias e sinalizar
 imobilidade aparente para revisão humana pela equipe da granja.
 
 O foco do MVP é a detecção e o acompanhamento espacial/temporal das caixas. Um

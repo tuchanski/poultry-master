@@ -1,4 +1,4 @@
-"""Inferência por ave, preservando a associação entre caixa e classificação."""
+"""Detecção de aves com caixas limitadas à imagem e confiança validada."""
 
 import math
 
@@ -45,28 +45,3 @@ def detect_birds(image, detector, settings):
                 {"id": len(birds) + 1, "box": box, "detection_confidence": confidence(score)}
             )
     return birds, len(boxes) >= settings["max_det"]
-
-
-def classify_birds(image, detector, classifier, settings):
-    birds, limit_reached = detect_birds(image, detector, settings)
-    batch_size = settings["classifier_batch"]
-    for start in range(0, len(birds), batch_size):
-        batch = birds[start : start + batch_size]
-        crops = [image.crop(bird["box"]) for bird in batch]
-        results = classifier.predict(
-            crops, device=settings["device"], imgsz=settings["classifier_imgsz"], verbose=False
-        )
-        if len(results) != len(batch):
-            raise ValueError("Nem todos os recortes foram classificados.")
-        for bird, result in zip(batch, results):
-            if result.probs is None:
-                raise ValueError("Classificador não retornou probabilidades.")
-            label = classifier.names[result.probs.top1]
-            if label not in ("dead", "healthy"):
-                raise ValueError("Classe incompatível com o MVP binário.")
-            bird.update(
-                label=label,
-                classification_confidence=confidence(result.probs.top1conf),
-                requires_verification=label == "dead",
-            )
-    return birds, limit_reached

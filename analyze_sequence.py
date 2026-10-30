@@ -16,7 +16,7 @@ from uuid import uuid4
 
 from PIL import Image, ImageDraw, ImageOps
 
-from analyze import ROOT, load_model
+from src.models import ROOT, load_model
 from src.preparation.common import file_hash
 from src.sequence import analyze_detections
 from src.pipeline import detect_birds

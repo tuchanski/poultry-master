@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from analyze import load_model
+from src.models import load_model
 from src.preparation.common import file_hash, write_csv, write_json
 
 
@@ -101,8 +101,6 @@ def main():
         },
         "versions": {"torch": torch.__version__, "ultralytics": ultralytics.__version__},
         "seconds": round(time.monotonic() - started, 3),
-        "classifier_evaluation": "pending: all reviewed crops were used for training",
-        "integrated_dead_evaluation": "qualitative only; no independent individual health labels",
         "limitations": "Known groups/hashes separated; animal independence and near-duplicates not established.",
     }
     write_json(output / "summary.json", report)

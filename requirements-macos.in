@@ -1,0 +1,8 @@
+# macOS Apple Silicon, Python 3.12; PyTorch sem CUDA.
+# Gerar o lock: uv pip compile requirements-macos.in -o requirements-macos.txt
+torch==2.8.0
+torchvision==0.23.0
+ultralytics==8.3.203
+Pillow==11.3.0
+numpy==2.2.6
+PyYAML==6.0.2

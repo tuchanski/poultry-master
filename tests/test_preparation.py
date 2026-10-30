@@ -1,7 +1,6 @@
-"""Verifica integridade das divisões e barreiras contra rótulos não revisados."""
+"""Verifica integridade das divisões e preparação do detector PIO."""
 
 import csv
-import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,11 +12,8 @@ from src.preparation.common import (
     file_hash,
     merge_related_groups,
     validate_splits,
-    write_csv,
 )
-from src.preparation.health import REVIEW_FIELDS, prepare_health, rgb_images
 from src.preparation.pio import prepare_pio, read_boxes, select_unique_images
-from src.preparation.review import create_review
 
 RATIOS = {"train": 0.70, "val": 0.15, "test": 0.15}
 
@@ -37,16 +33,16 @@ class SplitTests(unittest.TestCase):
         records = [
             {"group": f"session-{group}", "label": label, "sha256": f"{label}-{group}"}
             for group in range(12)
-            for label in ("healthy", "sick", "dead")
+            for label in ("chicken",)
         ]
         splits = assign_splits(records, RATIOS, 42)
         self.assertEqual(splits, assign_splits(list(reversed(records)), RATIOS, 42))
         prepared = [{**row, "split": splits[row["group"]]} for row in records]
         counts = validate_splits(prepared)
-        self.assertTrue(all(len(classes) == 3 for classes in counts.values()))
+        self.assertTrue(all(len(classes) == 1 for classes in counts.values()))
 
     def test_insufficient_groups_do_not_fall_back_to_random_images(self):
-        rows = [{"group": "same-session", "label": "dead"}] * 10
+        rows = [{"group": "same-session", "label": "chicken"}] * 10
         with self.assertRaisesRegex(ValueError, "três grupos"):
             assign_splits(rows, RATIOS, 42)
 
@@ -116,110 +112,6 @@ class FilePreparationTests(unittest.TestCase):
             self.assertEqual(len(list((output / "images" / split).glob("*.jpg"))), 1)
         with self.assertRaisesRegex(ValueError, "já existe"):
             prepare_pio(source, output, RATIOS, 42)
-
-    def make_health_images(self):
-        source = self.root / "health-originals"
-        for class_index, label in enumerate(("healthy", "sick", "dead")):
-            (source / label).mkdir(parents=True)
-            for session in range(3):
-                color = (class_index * 70, session * 70, 20)
-                Image.new("RGB", (20, 20), color).save(source / label / f"bird_rgb_{session}.jpg")
-        return source
-
-    def test_pending_health_review_is_not_exported(self):
-        source = self.make_health_images()
-        review = self.root / "review.csv"
-        template = Path(__file__).resolve().parents[1] / "scripts" / "health_review.html"
-        result = create_review(source, review, template)
-        self.assertEqual(result["pending"], 6)
-        output = self.root / "prepared"
-        with self.assertRaisesRegex(ValueError, "pendentes"):
-            prepare_health(source, review, output, RATIOS, 42)
-        self.assertFalse(output.exists())
-        with self.assertRaisesRegex(ValueError, "já existe"):
-            create_review(source, review, template)
-
-    def test_reviewed_crops_are_split_by_source_session(self):
-        source = self.make_health_images()
-        review = self.root / "review.csv"
-        rows = []
-        for original in rgb_images(source):
-            session = Path(original["image"]).stem.rsplit("_", 1)[1]
-            rows.append(
-                {
-                    **original,
-                    "status": "accepted",
-                    "group": f"session-{session}",
-                    "x1": 1,
-                    "y1": 2,
-                    "x2": 15,
-                    "y2": 17,
-                    "notes": "synthetic fixture",
-                }
-            )
-        write_csv(review, rows, REVIEW_FIELDS)
-        output = self.root / "prepared"
-        summary = prepare_health(source, review, output, RATIOS, 42)
-        self.assertEqual(summary["selected_crops"], 6)
-        with (output / "manifest.csv").open(encoding="utf-8-sig", newline="") as stream:
-            manifest = list(csv.DictReader(stream))
-        validate_splits(manifest)
-        for path in output.glob("*/*/*.png"):
-            with Image.open(path) as image:
-                self.assertEqual(image.size, (14, 15))
-
-    def test_selected_subset_can_be_prepared_for_demonstration_without_fake_groups(self):
-        source = self.make_health_images()
-        rows = []
-        for original in rgb_images(source):
-            if original["image"].endswith("_2.jpg"):
-                continue
-            rows.append(
-                {
-                    **original,
-                    "status": "accepted",
-                    "group": "",
-                    "x1": 1,
-                    "y1": 1,
-                    "x2": 15,
-                    "y2": 15,
-                    "notes": "Grupo desconhecido",
-                }
-            )
-        review = self.root / "review.csv"
-        selection = self.root / "selection.json"
-        write_csv(review, rows, REVIEW_FIELDS)
-        selection.write_text(json.dumps({"images": [row["image"] for row in rows]}))
-        output = self.root / "demonstration"
-        result = prepare_health(
-            source, review, output, RATIOS, 42, selection=selection, mode="demonstration"
-        )
-        self.assertEqual(result["selected_crops"], 4)
-        self.assertEqual(result["independent_evaluation"], "pending")
-        self.assertFalse((output / "val").exists())
-        self.assertFalse((output / "test").exists())
-        self.assertFalse((output / "train/sick").exists())
-        with self.assertRaisesRegex(ValueError, "animal/sessão"):
-            prepare_health(source, review, self.root / "grouped", RATIOS, 42, selection=selection)
-
-    def test_subset_cannot_silently_drop_rows(self):
-        source = self.make_health_images()
-        review = self.root / "review.csv"
-        template = Path(__file__).resolve().parents[1] / "scripts/health_review.html"
-        create_review(source, review, template)
-        with review.open(encoding="utf-8-sig", newline="") as stream:
-            rows = list(csv.DictReader(stream))
-        write_csv(review, rows[:-1], REVIEW_FIELDS)
-        with self.assertRaisesRegex(ValueError, "exatamente uma linha"):
-            prepare_health(
-                source,
-                review,
-                self.root / "bad",
-                RATIOS,
-                42,
-                selection=self.root / "selection.json",
-                mode="demonstration",
-            )
 
 
 if __name__ == "__main__":

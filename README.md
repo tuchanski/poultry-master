@@ -6,7 +6,7 @@ fluxo atual usa as caixas detectadas para estimar trajetórias e sinalizar
 imobilidade aparente para revisão humana.
 
 O foco do MVP é a detecção e o acompanhamento espacial/temporal das caixas. O
-classificador `healthy/dead` não faz parte do fluxo sequencial atual. Um
+fluxo utiliza apenas o detector; o classificador `healthy/dead` foi removido. Um
 candidato de imobilidade não confirma que uma ave morreu: caixas podem sumir,
 ser associadas à ave errada ou parecer paradas entre capturas.
 
@@ -148,6 +148,29 @@ um diagnóstico de saúde ou confirmação de óbito. Câmera móvel, mudanças 
 iluminação, sobreposição, falhas de detecção e trocas de associação podem
 afetar o resultado.
 
+### Execução de referência: granja3
+
+Execução em CPU sobre 161 fotos, ordenadas pelos horários do manifesto, com a
+ROI `0,0.40,1,1` (toda a largura e os 60% inferiores) e limiar de imobilidade
+aparente de 15 minutos:
+
+```bash
+.venv/bin/python analyze_sequence.py \
+  --images-dir "/Users/tuchanski/Desktop/granja3" \
+  --output "outputs/granja3-roi-04-review-15min-v2" \
+  --device cpu \
+  --roi 0,0.40,1,1 \
+  --stationary-minutes 15 \
+  --candidates-only \
+  --hide-labels
+```
+
+Resultado: 40.409 detecções antes e 13.980 depois do ROI; 1.176 trajetórias
+criadas, das quais uma teve candidato, totalizando um evento candidato. O
+resultado indica apenas imobilidade aparente nas capturas observadas. Cada
+candidato exige verificação humana e não confirma óbito. Os arquivos foram
+salvos em `outputs/granja3-roi-04-review-15min-v2`.
+
 ## Desenvolvimento, avaliação e dados
 
 Confira o ambiente e rode a suíte de testes:
@@ -166,5 +189,19 @@ atingiu mAP@50 de 93,41% no teste PIO, mas apresentou supercontagem média de
 39,81 aves por imagem nessa avaliação. Esse resultado não mede o rastreamento
 sequencial. Dados de preparação e treinamento estão documentados em
 [preparação dos dados](docs/preparacao-dados.md), [treinamento](docs/treinamento.md)
-e [avaliação](docs/avaliacao.md). Os planos do MVP estão em
-[MVP sequencial](docs/plano-mvp-sequencial.md) e [MVP inicial](docs/plano-mvp.md).
+e [avaliação](docs/avaliacao.md). O escopo e as próximas verificações estão em
+[MVP sequencial](docs/plano-mvp-sequencial.md).
+
+
+## Estrutura do repositório
+
+- `analyze_sequence.py`: entrada da análise sequencial.
+- `config.json`: preparação do PIO e parâmetros de inferência do detector.
+- `src/models.py`: validação e carregamento do detector e seus metadados.
+- `src/pipeline.py` e `src/sequence.py`: detecção e associação temporal.
+- `src/preparation/`: preparação e integridade dos dados PIO.
+- `scripts/`: verificação do ambiente, preparação, treino e avaliação do detector.
+- `tests/`: testes de detecção, sequência e preparação de dados.
+- `docs/`: instruções e limitações do fluxo atual.
+
+Dados, pesos, ambientes e resultados locais permanecem fora do versionamento.

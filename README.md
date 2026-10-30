@@ -1,9 +1,10 @@
 # Poultry Master
 
-Ferramenta experimental de visão computacional para detectar aves em imagens e
-acompanhar suas **bounding boxes** em fotos sucessivas de uma câmera fixa. O
-fluxo atual usa as caixas detectadas para estimar trajetórias e sinalizar
-imobilidade aparente para revisão humana.
+Ferramenta experimental de visão computacional voltada ao acompanhamento de
+aves de criação em granjas avícolas, com foco em frangos de corte alojados em
+galpões. O sistema detecta as aves em fotos sucessivas de uma câmera fixa e
+acompanha suas **bounding boxes** para estimar trajetórias e sinalizar
+imobilidade aparente para revisão humana pela equipe da granja.
 
 O foco do MVP é a detecção e o acompanhamento espacial/temporal das caixas. Um
 candidato de imobilidade não confirma que uma ave morreu: caixas podem sumir,
